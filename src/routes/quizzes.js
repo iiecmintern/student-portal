@@ -7,10 +7,16 @@ const Lesson = require('../models/Lesson');
 // GET all quizzes by lesson ID
 router.get('/lesson/:lessonId', async (req, res) => {
   try {
-    const quiz = await Quiz.findOne({ lesson_id: req.params.lessonId, is_active: true }).select('-__v');
+    const quiz = await Quiz.findOne({
+      lesson_id: req.params.lessonId,
+      is_active: true
+    }).select('-__v');
 
     if (!quiz) {
-      return res.status(404).json({ success: false, message: 'Quiz not found for this lesson' });
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found for this lesson'
+      });
     }
 
     res.json({ success: true, data: quiz });
@@ -20,7 +26,7 @@ router.get('/lesson/:lessonId', async (req, res) => {
   }
 });
 
-// GET quiz by quiz ID
+// GET quiz by ID
 router.get('/:id', async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id)
@@ -38,7 +44,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CREATE a quiz
+// CREATE quiz and attach to lesson
 router.post('/', authenticateToken, requireInstructor, async (req, res) => {
   try {
     const {
@@ -55,14 +61,18 @@ router.post('/', authenticateToken, requireInstructor, async (req, res) => {
     } = req.body;
 
     const lesson = await Lesson.findById(lesson_id).populate('course_id');
-
     if (!lesson) {
       return res.status(404).json({ success: false, message: 'Lesson not found' });
     }
 
-    const courseCreator = lesson.course_id.created_by;
-    if (courseCreator.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to create quiz for this lesson' });
+    if (
+      lesson.course_id.created_by.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to create quiz for this lesson'
+      });
     }
 
     const quiz = new Quiz({
@@ -79,6 +89,11 @@ router.post('/', authenticateToken, requireInstructor, async (req, res) => {
     });
 
     await quiz.save();
+
+    // ⏎ Link the quiz to the lesson
+    lesson.quiz = quiz._id;
+    await lesson.save();
+
     res.status(201).json({ success: true, data: quiz });
   } catch (error) {
     console.error('Error creating quiz:', error);
@@ -90,15 +105,19 @@ router.post('/', authenticateToken, requireInstructor, async (req, res) => {
 router.put('/:id', authenticateToken, requireInstructor, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id).populate('lesson_id');
-
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
 
     const lesson = await Lesson.findById(quiz.lesson_id._id).populate('course_id');
-
-    if (lesson.course_id.created_by.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to update this quiz' });
+    if (
+      lesson.course_id.created_by.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this quiz'
+      });
     }
 
     const updatedQuiz = await Quiz.findByIdAndUpdate(req.params.id, req.body, {
@@ -113,22 +132,30 @@ router.put('/:id', authenticateToken, requireInstructor, async (req, res) => {
   }
 });
 
-// DELETE quiz
+// DELETE quiz and unlink from lesson
 router.delete('/:id', authenticateToken, requireInstructor, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id).populate('lesson_id');
-
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
 
     const lesson = await Lesson.findById(quiz.lesson_id._id).populate('course_id');
-
-    if (lesson.course_id.created_by.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to delete this quiz' });
+    if (
+      lesson.course_id.created_by.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this quiz'
+      });
     }
 
-    await quiz.remove();
+    // ⏎ Unlink from lesson
+    lesson.quiz = null;
+    await lesson.save();
+
+    await Quiz.findByIdAndDelete(quiz._id);
 
     res.json({ success: true, message: 'Quiz deleted successfully' });
   } catch (error) {

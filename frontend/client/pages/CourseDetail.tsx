@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   BookOpen,
   Clock,
@@ -24,9 +29,30 @@ const BACKEND_URL = "http://localhost:3001";
 
 export default function CourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [courseData, setCourseData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const fetchFirstLessonId = async (courseId: string) => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/lessons/course/${courseId}`);
+      const lessons = res.data.data;
+      return lessons?.[0]?._id || null;
+    } catch (err) {
+      console.error("Error fetching first lesson:", err);
+      return null;
+    }
+  };
+
+  const handleStartLearning = async () => {
+    const lessonId = await fetchFirstLessonId(courseData._id);
+    if (lessonId) {
+      navigate(`/lesson/${lessonId}`);
+    } else {
+      alert("No lessons found for this course.");
+    }
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -40,21 +66,11 @@ export default function CourseDetail() {
         setLoading(false);
       }
     };
-    fetchCourse();
+    if (id) fetchCourse();
   }, [id]);
 
-  if (loading)
-    return (
-      <AppLayout>
-        <div className="p-8">Loading...</div>
-      </AppLayout>
-    );
-  if (error)
-    return (
-      <AppLayout>
-        <div className="p-8 text-red-500">{error}</div>
-      </AppLayout>
-    );
+  if (loading) return <AppLayout><div className="p-8">Loading...</div></AppLayout>;
+  if (error) return <AppLayout><div className="p-8 text-red-500">{error}</div></AppLayout>;
   if (!courseData) return null;
 
   const instructor = courseData.created_by;
@@ -68,20 +84,13 @@ export default function CourseDetail() {
             <div className="lg:col-span-2 space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-primary/20 text-primary-foreground"
-                  >
+                  <Badge variant="secondary" className="bg-primary/20 text-primary-foreground">
                     {courseData.category}
                   </Badge>
-                  <Badge
-                    variant="outline"
-                    className="border-white/20 text-white"
-                  >
+                  <Badge variant="outline" className="border-white/20 text-white">
                     {courseData.difficulty}
                   </Badge>
                 </div>
-
                 <h1 className="text-3xl md:text-4xl font-bold leading-tight">
                   {courseData.title}
                 </h1>
@@ -128,9 +137,7 @@ export default function CourseDetail() {
                     </Avatar>
                     <div>
                       <p className="font-medium">{instructor.full_name}</p>
-                      <p className="text-sm text-slate-300">
-                        {instructor.email}
-                      </p>
+                      <p className="text-sm text-slate-300">{instructor.email}</p>
                     </div>
                   </div>
                 )}
@@ -160,15 +167,9 @@ export default function CourseDetail() {
                 </div>
 
                 <CardContent className="p-6 space-y-4 text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    ${courseData.price}
-                  </div>
+                  <div className="text-3xl font-bold text-primary">${courseData.price}</div>
 
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                    size="lg"
-                    disabled
-                  >
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg" disabled>
                     <BookOpen className="mr-2 h-5 w-5" />
                     Enrolled
                   </Button>
@@ -176,9 +177,7 @@ export default function CourseDetail() {
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                     size="lg"
-                    onClick={() =>
-                      (window.location.href = `/lessons/${courseData._id}`)
-                    }
+                    onClick={handleStartLearning}
                   >
                     <Play className="mr-2 h-5 w-5" />
                     Start Learning
@@ -230,7 +229,6 @@ export default function CourseDetail() {
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
 
-          {/* Overview */}
           <TabsContent value="overview">
             <Card>
               <CardContent className="p-6 text-muted-foreground">
@@ -239,24 +237,14 @@ export default function CourseDetail() {
             </Card>
           </TabsContent>
 
-          {/* Curriculum */}
           <TabsContent value="curriculum">
             <Card>
               <CardContent className="p-6 text-muted-foreground space-y-2">
                 {courseData.curriculum?.topics?.length > 0 ? (
                   <>
-                    <div>
-                      <strong>Topics:</strong>{" "}
-                      {courseData.curriculum.topics.join(", ")}
-                    </div>
-                    <div>
-                      <strong>Total Modules:</strong>{" "}
-                      {courseData.curriculum.total_modules}
-                    </div>
-                    <div>
-                      <strong>Total Quizzes:</strong>{" "}
-                      {courseData.curriculum.total_quizzes}
-                    </div>
+                    <div><strong>Topics:</strong> {courseData.curriculum.topics.join(", ")}</div>
+                    <div><strong>Total Modules:</strong> {courseData.curriculum.total_modules}</div>
+                    <div><strong>Total Quizzes:</strong> {courseData.curriculum.total_quizzes}</div>
                   </>
                 ) : (
                   <p>No curriculum available.</p>
@@ -265,7 +253,6 @@ export default function CourseDetail() {
             </Card>
           </TabsContent>
 
-          {/* Instructor */}
           <TabsContent value="instructor">
             <Card>
               <CardContent className="p-6 text-muted-foreground">
@@ -287,16 +274,13 @@ export default function CourseDetail() {
                   </Avatar>
                   <div>
                     <p className="font-medium text-lg">{instructor.full_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {instructor.email}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{instructor.email}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Reviews */}
           <TabsContent value="reviews">
             <Card>
               <CardContent className="p-6 text-muted-foreground">

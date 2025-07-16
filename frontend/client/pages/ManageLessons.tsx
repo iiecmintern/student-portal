@@ -17,6 +17,13 @@ interface Lesson {
   content: string;
   order: number;
   duration: number;
+  attachments?: UploadedFile[];
+}
+
+interface UploadedFile {
+  filename: string;
+  url: string;
+  type: string;
 }
 
 const ManageLessons = () => {
@@ -29,6 +36,8 @@ const ManageLessons = () => {
     order: 1,
     duration: 10,
   });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
@@ -37,38 +46,31 @@ const ManageLessons = () => {
   const token = localStorage.getItem("token");
 
   const fetchCourses = async () => {
+    setLoadingCourses(true);
     try {
-      setLoadingCourses(true);
       const res = await axios.get("http://localhost:3001/api/courses/my", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        setCourses(res.data.data);
-      } else {
-        setCourses([]);
-      }
+      setCourses(res.data.data || []);
     } catch (err) {
-      console.error("❌ Error fetching courses:", err);
+      console.error("Error fetching courses:", err);
     } finally {
       setLoadingCourses(false);
     }
   };
 
   const fetchLessons = async (courseId: string) => {
+    setLoadingLessons(true);
     try {
-      setLoadingLessons(true);
-      const res = await axios.get(
-        `http://localhost:3001/api/lessons/course/${courseId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await axios.get(`http://localhost:3001/api/lessons/course/${courseId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = res.data.data || [];
       setLessons(data);
       const nextOrder = data.length ? Math.max(...data.map((l: Lesson) => l.order)) + 1 : 1;
       setNewLesson((prev) => ({ ...prev, order: nextOrder }));
     } catch (err) {
-      console.error("❌ Error fetching lessons:", err);
+      console.error("Error fetching lessons:", err);
     } finally {
       setLoadingLessons(false);
     }
@@ -79,15 +81,36 @@ const ManageLessons = () => {
       alert("Please fill all fields");
       return;
     }
+
+    setIsSubmitting(true);
+
     try {
-      setIsSubmitting(true);
-      await axios.post(
-        "http://localhost:3001/api/lessons",
-        { ...newLesson, course_id: selectedCourseId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await fetchLessons(selectedCourseId);
+      let uploadedFileInfo = null;
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await axios.post("http://localhost:3001/api/lessons/upload", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        uploadedFileInfo = uploadRes.data.data;
+      }
+
+      const payload = {
+        ...newLesson,
+        course_id: selectedCourseId,
+        attachments: uploadedFileInfo ? [uploadedFileInfo] : [],
+      };
+
+      await axios.post("http://localhost:3001/api/lessons", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setNewLesson({ title: "", content: "", order: newLesson.order + 1, duration: 10 });
+      setFile(null);
+      await fetchLessons(selectedCourseId);
     } catch (err: any) {
       alert(err?.response?.data?.message || "Error adding lesson");
     } finally {
@@ -103,31 +126,11 @@ const ManageLessons = () => {
       });
       await fetchLessons(selectedCourseId);
     } catch (err) {
-      console.error("❌ Failed to delete lesson:", err);
       alert("Error deleting lesson");
     }
   };
 
-  const handleUpdateLesson = async () => {
-    if (!editingLesson) return;
-    try {
-      setIsSubmitting(true);
-      await axios.put(
-        `http://localhost:3001/api/lessons/${editingLesson._id}`,
-        editingLesson,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      await fetchLessons(selectedCourseId);
-      setEditingLesson(null);
-    } catch (err) {
-      console.error("❌ Failed to update lesson:", err);
-      alert("Error updating lesson");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const selectedCourse = courses.find((c) => c._id === selectedCourseId);
 
   useEffect(() => {
     fetchCourses();
@@ -137,37 +140,29 @@ const ManageLessons = () => {
     if (selectedCourseId) fetchLessons(selectedCourseId);
   }, [selectedCourseId]);
 
-  const selectedCourse = courses.find((c) => c._id === selectedCourseId);
-
   return (
     <AppLayout>
       <div className="container py-6">
         <h1 className="text-2xl font-bold mb-4">Manage Lessons</h1>
 
         <div className="mb-6">
-          {loadingCourses ? (
-            <p className="text-muted">Loading courses...</p>
-          ) : (
-            <select
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="p-2 border rounded w-full sm:w-auto"
-            >
-              <option value="">Select a course</option>
-              {courses.map((course) => (
-                <option key={course._id} value={course._id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            className="p-2 border rounded w-full sm:w-auto"
+          >
+            <option value="">Select a course</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
         </div>
 
         {selectedCourseId && (
           <>
-            <h2 className="text-xl font-semibold mb-2">
-              Lessons for: {selectedCourse?.title}
-            </h2>
+            <h2 className="text-xl font-semibold mb-2">Lessons for: {selectedCourse?.title}</h2>
 
             <Card className="mb-6">
               <CardHeader>
@@ -177,29 +172,20 @@ const ManageLessons = () => {
                 <Input
                   placeholder="Lesson Title"
                   value={newLesson.title}
-                  onChange={(e) =>
-                    setNewLesson({ ...newLesson, title: e.target.value })
-                  }
+                  onChange={(e) => setNewLesson({ ...newLesson, title: e.target.value })}
                   disabled={isSubmitting}
                 />
                 <Textarea
                   placeholder="Lesson Content"
                   value={newLesson.content}
-                  onChange={(e) =>
-                    setNewLesson({ ...newLesson, content: e.target.value })
-                  }
+                  onChange={(e) => setNewLesson({ ...newLesson, content: e.target.value })}
                   disabled={isSubmitting}
                 />
                 <Input
                   type="number"
                   placeholder="Order"
                   value={newLesson.order}
-                  onChange={(e) =>
-                    setNewLesson({
-                      ...newLesson,
-                      order: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setNewLesson({ ...newLesson, order: Number(e.target.value) })}
                   disabled={isSubmitting}
                 />
                 <Input
@@ -207,13 +193,22 @@ const ManageLessons = () => {
                   placeholder="Duration (minutes)"
                   value={newLesson.duration}
                   onChange={(e) =>
-                    setNewLesson({
-                      ...newLesson,
-                      duration: Number(e.target.value),
-                    })
+                    setNewLesson({ ...newLesson, duration: Number(e.target.value) })
                   }
                   disabled={isSubmitting}
                 />
+                <Input
+                  type="file"
+                  accept="video/*,application/pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  disabled={isSubmitting}
+                />
+                {file && file.type.startsWith("video/") && (
+                  <video className="w-full mt-2" controls height="240">
+                    <source src={URL.createObjectURL(file)} type={file.type} />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
                 <Button onClick={handleAddLesson} disabled={isSubmitting}>
                   {isSubmitting ? "Adding..." : "Add Lesson"}
                 </Button>
@@ -228,78 +223,49 @@ const ManageLessons = () => {
               ) : (
                 lessons.map((lesson) => (
                   <Card key={lesson._id}>
-                    <CardContent className="py-4">
-                      {editingLesson?. _id === lesson._id ? (
-                        <div className="space-y-2">
-                          <Input
-                            value={editingLesson.title}
-                            onChange={(e) =>
-                              setEditingLesson({
-                                ...editingLesson,
-                                title: e.target.value,
-                              })
-                            }
-                          />
-                          <Textarea
-                            value={editingLesson.content}
-                            onChange={(e) =>
-                              setEditingLesson({
-                                ...editingLesson,
-                                content: e.target.value,
-                              })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            value={editingLesson.order}
-                            onChange={(e) =>
-                              setEditingLesson({
-                                ...editingLesson,
-                                order: Number(e.target.value),
-                              })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            value={editingLesson.duration}
-                            onChange={(e) =>
-                              setEditingLesson({
-                                ...editingLesson,
-                                duration: Number(e.target.value),
-                              })
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button onClick={handleUpdateLesson}>Save</Button>
-                            <Button variant="outline" onClick={() => setEditingLesson(null)}>
-                              Cancel
-                            </Button>
-                          </div>
+                    <CardContent className="py-4 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold">{lesson.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Order: {lesson.order}, Duration: {lesson.duration} mins
+                          </p>
                         </div>
-                      ) : (
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h3 className="font-semibold">{lesson.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Order: {lesson.order}, Duration: {lesson.duration} mins
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setEditingLesson(lesson)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => handleDeleteLesson(lesson._id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setEditingLesson(lesson)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleDeleteLesson(lesson._id)}
+                          >
+                            Delete
+                          </Button>
                         </div>
-                      )}
+                      </div>
+
+                      {lesson.attachments?.map((att, i) => (
+                        <div key={i} className="text-sm mt-1">
+                          {att.type.startsWith("video/") ? (
+                            <video controls className="w-full max-w-md">
+                              <source src={att.url} type={att.type} />
+                              Your browser does not support the video tag.
+                            </video>
+                          ) : (
+                            <a
+                              className="text-blue-600 underline"
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {att.filename}
+                            </a>
+                          )}
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                 ))
