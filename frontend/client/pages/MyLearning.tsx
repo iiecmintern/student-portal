@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, Award, CheckCircle, Play } from "lucide-react";
+import { BookOpen, Clock, Award, CheckCircle } from "lucide-react";
 import axios from "axios";
 
 export default function MyLearning() {
   const [courses, setCourses] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEnrolledCourses = async () => {
@@ -20,7 +22,7 @@ export default function MyLearning() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         );
         setCourses(res.data.data);
       } catch (error) {
@@ -132,15 +134,22 @@ export default function MyLearning() {
                     <div className="flex-1">
                       <h4 className="font-semibold">{course.title}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {course.instructor_name || "Instructor"}
+                        {course.created_by?.full_name || "Instructor"}
                       </p>
                     </div>
+
                     <div className="text-center">
                       <p className="text-sm font-medium">0%</p>
                       <Progress value={0} className="w-20 h-2" />
                     </div>
+
                     <Badge variant="secondary">In Progress</Badge>
-                    <Button variant="outline" size="sm">
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/course/${course._id}`)}
+                    >
                       View
                     </Button>
                   </div>

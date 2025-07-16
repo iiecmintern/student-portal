@@ -1,3 +1,5 @@
+// (File: InstructorDashboard.tsx)
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,16 +33,20 @@ interface Course {
   thumbnail_url: string | null;
   status: string;
   created_by: any;
+  overview?: string;
+  curriculum?: {
+    topics: string[];
+    total_modules: number;
+    total_quizzes: number;
+  };
 }
 
 export default function InstructorDashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -52,24 +58,23 @@ export default function InstructorDashboard() {
     difficulty: "",
     tags: "",
     price: "",
+    overview: "",
+    curriculumTopics: "",
+    totalModules: "",
+    totalQuizzes: "",
   });
 
   const fetchMyCourses = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3001/api/courses/my", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCourses(data.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch courses:", err);
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    const res = await fetch("http://localhost:3001/api/courses/my", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.success) {
+      setCourses(data.data);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -86,15 +91,21 @@ export default function InstructorDashboard() {
 
   const handleCreateOrUpdateCourse = async () => {
     const formData = new FormData();
+    const curriculum = {
+      topics: newCourse.curriculumTopics.split(",").map((t) => t.trim()),
+      total_modules: parseInt(newCourse.totalModules),
+      total_quizzes: parseInt(newCourse.totalQuizzes),
+    };
+
     formData.append("title", newCourse.title);
     formData.append("description", newCourse.description);
     formData.append("category", newCourse.category);
     formData.append("difficulty", newCourse.difficulty);
     formData.append("tags", newCourse.tags);
     formData.append("price", newCourse.price);
-    if (thumbnail) {
-      formData.append("thumbnail", thumbnail);
-    }
+    formData.append("overview", newCourse.overview);
+    formData.append("curriculum", JSON.stringify(curriculum));
+    if (thumbnail) formData.append("thumbnail", thumbnail);
 
     const token = localStorage.getItem("token");
     const url = isEditMode
@@ -102,46 +113,19 @@ export default function InstructorDashboard() {
       : "http://localhost:3001/api/courses";
     const method = isEditMode ? "PUT" : "POST";
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
 
-      const data = await res.json();
-      if (data.success) {
-        alert(isEditMode ? "Course updated!" : "Course created!");
-        resetForm();
-        fetchMyCourses();
-      } else {
-        alert(data.message || "Operation failed");
-      }
-    } catch (err) {
-      console.error("Error:", err);
-    }
-  };
-
-  const handleDeleteCourse = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
-
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`http://localhost:3001/api/courses/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Course deleted");
-        fetchMyCourses();
-      } else {
-        alert(data.message || "Deletion failed");
-      }
-    } catch (err) {
-      console.error("Error deleting course:", err);
+    const data = await res.json();
+    if (data.success) {
+      alert(isEditMode ? "Course updated!" : "Course created!");
+      resetForm();
+      fetchMyCourses();
+    } else {
+      alert(data.message || "Operation failed");
     }
   };
 
@@ -156,16 +140,47 @@ export default function InstructorDashboard() {
       difficulty: course.difficulty,
       tags: course.tags.join(", "),
       price: course.price.toString(),
+      overview: course.overview || "",
+      curriculumTopics: course.curriculum?.topics.join(", ") || "",
+      totalModules: course.curriculum?.total_modules?.toString() || "0",
+      totalQuizzes: course.curriculum?.total_quizzes?.toString() || "0",
     });
     setThumbnail(null);
     setThumbnailPreview(course.thumbnail_url ? `http://localhost:3001${course.thumbnail_url}` : null);
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this course?")) return;
+    const token = localStorage.getItem("token");
+    const res = await fetch(`http://localhost:3001/api/courses/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Course deleted");
+      fetchMyCourses();
+    } else {
+      alert(data.message || "Deletion failed");
+    }
   };
 
   const resetForm = () => {
     setShowCreateCourse(false);
     setIsEditMode(false);
     setEditingCourse(null);
-    setNewCourse({ title: "", description: "", category: "", difficulty: "", tags: "", price: "" });
+    setNewCourse({
+      title: "",
+      description: "",
+      category: "",
+      difficulty: "",
+      tags: "",
+      price: "",
+      overview: "",
+      curriculumTopics: "",
+      totalModules: "",
+      totalQuizzes: "",
+    });
     setThumbnail(null);
     setThumbnailPreview(null);
   };
@@ -182,134 +197,77 @@ export default function InstructorDashboard() {
                 {isEditMode ? "Edit Course" : "Create Course"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{isEditMode ? "Edit Course" : "Create New Course"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Course Title</Label>
-                  <Input
-                    id="title"
-                    value={newCourse.title}
-                    onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    value={newCourse.description}
-                    onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Category</Label>
-                    <Select
-                      value={newCourse.category}
-                      onValueChange={(value) => setNewCourse({ ...newCourse, category: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="web-development">Web Development</SelectItem>
-                        <SelectItem value="data-science">Data Science</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Difficulty</Label>
-                    <Select
-                      value={newCourse.difficulty}
-                      onValueChange={(value) => setNewCourse({ ...newCourse, difficulty: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="tags">Tags (comma separated)</Label>
-                  <Input
-                    id="tags"
-                    value={newCourse.tags}
-                    onChange={(e) => setNewCourse({ ...newCourse, tags: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="price">Price ($)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newCourse.price}
-                    onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Course Thumbnail</Label>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleThumbnailChange}
-                  />
-                  {thumbnailPreview && (
-                    <img src={thumbnailPreview} alt="preview" className="mt-2 h-24 w-24 rounded object-cover" />
-                  )}
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateOrUpdateCourse}>
-                    {isEditMode ? "Update Course" : "Create Course"}
-                  </Button>
+                <Label>Course Title</Label>
+                <Input value={newCourse.title} onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })} />
+                <Label>Description</Label>
+                <Textarea value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })} />
+                <Label>Overview</Label>
+                <Textarea value={newCourse.overview} onChange={(e) => setNewCourse({ ...newCourse, overview: e.target.value })} />
+                <Label>Curriculum Topics (comma-separated)</Label>
+                <Input value={newCourse.curriculumTopics} onChange={(e) => setNewCourse({ ...newCourse, curriculumTopics: e.target.value })} />
+                <Label>Total Modules</Label>
+                <Input type="number" value={newCourse.totalModules} onChange={(e) => setNewCourse({ ...newCourse, totalModules: e.target.value })} />
+                <Label>Total Quizzes</Label>
+                <Input type="number" value={newCourse.totalQuizzes} onChange={(e) => setNewCourse({ ...newCourse, totalQuizzes: e.target.value })} />
+                <Label>Category</Label>
+                <Select value={newCourse.category} onValueChange={(val) => setNewCourse({ ...newCourse, category: val })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="web-development">Web Development</SelectItem>
+                    <SelectItem value="data-science">Data Science</SelectItem>
+                    <SelectItem value="design">Design</SelectItem>
+                    <SelectItem value="design">Programming Language</SelectItem>
+                    <SelectItem value="design">Research & Development</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Label>Difficulty</Label>
+                <Select value={newCourse.difficulty} onValueChange={(val) => setNewCourse({ ...newCourse, difficulty: val })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Label>Tags</Label>
+                <Input value={newCourse.tags} onChange={(e) => setNewCourse({ ...newCourse, tags: e.target.value })} />
+                <Label>Price</Label>
+                <Input type="number" value={newCourse.price} onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })} />
+                <Label>Thumbnail</Label>
+                <Input ref={fileInputRef} type="file" onChange={handleThumbnailChange} />
+                {thumbnailPreview && <img src={thumbnailPreview} alt="preview" className="h-24 mt-2" />}
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={resetForm}>Cancel</Button>
+                  <Button onClick={handleCreateOrUpdateCourse}>{isEditMode ? "Update" : "Create"}</Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Course List */}
         {loading ? (
           <p>Loading your courses...</p>
         ) : courses.length === 0 ? (
-          <p className="text-muted-foreground">No courses created yet.</p>
+          <p>No courses created yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {courses.map((course) => (
-              <div key={course._id} className="border rounded-lg overflow-hidden shadow-sm bg-white">
+              <div key={course._id} className="border rounded shadow-sm p-4 bg-white">
                 {course.thumbnail_url && (
-                  <img
-                    src={`http://localhost:3001${course.thumbnail_url}`}
-                    alt={course.title}
-                    className="w-full h-40 object-cover"
-                  />
+                  <img src={`http://localhost:3001${course.thumbnail_url}`} className="w-full h-40 object-cover mb-2" />
                 )}
-                <div className="p-4">
-                  <h2 className="font-semibold text-lg">{course.title}</h2>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
-                  <p className="mt-2 font-medium text-primary">${course.price}</p>
-                  <p className="text-xs text-gray-500 capitalize">{course.category} • {course.difficulty}</p>
-                  <div className="flex space-x-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={() => openEditDialog(course)}>
-                      <Pencil className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course._id)}>
-                      <Trash className="h-4 w-4 mr-1" /> Delete
-                    </Button>
-                  </div>
+                <h2 className="font-bold text-lg">{course.title}</h2>
+                <p className="text-sm text-black">{course.description}</p>
+                <p className="text-sm mt-1">${course.price}</p>
+                <p className="text-xs text-gray-500">{course.category} • {course.difficulty}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" onClick={() => openEditDialog(course)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDeleteCourse(course._id)}><Trash className="w-4 h-4 mr-1" />Delete</Button>
                 </div>
               </div>
             ))}

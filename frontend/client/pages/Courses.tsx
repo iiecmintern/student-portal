@@ -39,12 +39,12 @@ const sortOptions = [
   { value: "price-high", label: "Price: High to Low" },
 ];
 
-// Util: Converts display name to backend slug (e.g., Web Development -> web-development)
 const toSlug = (text: string) => text.toLowerCase().replace(/\s+/g, "-");
 
 export default function Courses() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<any[]>([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedLevel, setSelectedLevel] = useState("All Levels");
@@ -56,27 +56,47 @@ export default function Courses() {
       try {
         const res = await fetch("http://localhost:3001/api/courses");
         const data = await res.json();
-        if (data.success) {
-          setCourses(data.data);
-        }
+        if (data.success) setCourses(data.data);
       } catch (err) {
         console.error("Failed to fetch courses", err);
       }
     };
+
+    const fetchEnrolled = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:3001/api/enrollments/my-courses", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const enrolledData = await res.json();
+        if (enrolledData.success) {
+          const ids = new Set<string>(enrolledData.data.map((c: any) => c._id));
+          setEnrolledCourseIds(ids);
+        }
+      } catch (err) {
+        console.error("Failed to fetch enrolled courses", err);
+      }
+    };
+
     fetchCourses();
+    fetchEnrolled();
   }, []);
 
   const handleEnroll = async (courseId: string) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`http://localhost:3001/api/enrollments/enroll/${courseId}`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await res.json();
       if (data.success) {
+        setEnrolledCourseIds((prev) => new Set([...prev, courseId]));
         navigate(`/course/${courseId}`);
       } else {
         alert(data.message || "Enrollment failed");
@@ -143,7 +163,6 @@ export default function Courses() {
                 className="pl-10"
               />
             </div>
-
             <div className="flex items-center space-x-2">
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
@@ -205,7 +224,7 @@ export default function Courses() {
           </div>
         </div>
 
-        {/* Courses */}
+        {/* Course List */}
         <div
           className={
             viewMode === "grid"
@@ -237,10 +256,21 @@ export default function Courses() {
                   <span className="text-primary font-semibold text-lg">
                     ${course.price}
                   </span>
-                  <Button size="sm" onClick={() => handleEnroll(course._id)}>
-                    <BookOpen className="h-4 w-4 mr-1" />
-                    Enroll
-                  </Button>
+                  {enrolledCourseIds.has(course._id) ? (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => navigate(`/course/${course._id}`)}
+                    >
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Enrolled
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => handleEnroll(course._id)}>
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Enroll
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

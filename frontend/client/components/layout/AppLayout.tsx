@@ -1,3 +1,4 @@
+// AppLayout.tsx
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import {
   Bell,
   X,
   LogOut,
+  Users as UsersIcon,
+  LayoutList,
 } from "lucide-react";
 import { useAuth } from "@/AuthContext";
 
@@ -55,10 +58,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
             href: "/instructor-dashboard",
             icon: User,
           },
+          { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
+          { name: "Manage Users", href: "/admin-dashboard", icon: UsersIcon },
         ]
       : [
           { name: "Courses", href: "/courses", icon: GraduationCap },
-          { name: "My Learning", href: "/my-learning", icon: User },
+          ...(user
+            ? [{ name: "My Learning", href: "/my-learning", icon: User }]
+            : []),
         ]),
   ];
 
@@ -100,7 +107,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Right Section */}
           <div className="flex flex-1 items-center justify-end space-x-4">
             <div className="w-full flex-1 md:w-auto md:flex-none">
-              <div className="relative">{/* Optional search input */}</div>
+              <div className="relative">{/* Optional search */}</div>
             </div>
 
             <Button variant="ghost" size="icon" className="relative">
@@ -200,6 +207,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <footer className="border-t border-border/40 bg-muted/40">
         <div className="container px-4 py-12">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+            {/* About */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -213,6 +221,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </p>
             </div>
 
+            {/* Platform Links */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Platform</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -234,6 +243,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </ul>
             </div>
 
+            {/* Support Links */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Support</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -255,6 +265,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </ul>
             </div>
 
+            {/* Legal */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Legal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
