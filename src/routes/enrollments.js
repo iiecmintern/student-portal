@@ -45,15 +45,22 @@ router.post("/enroll/:courseId", authenticateToken, async (req, res) => {
 // ✅ Get all enrolled courses for logged-in student
 router.get("/my-courses", authenticateToken, async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ user_id: req.user.id, status: "active" })
+    const userId = req.user._id; // 🔥 Make sure this is correct
+
+    const enrollments = await Enrollment.find({ user_id: userId, status: "active" })
       .populate("course_id");
 
-    const courses = enrollments.map((enr) => enr.course_id);
+    const courses = enrollments
+      .filter(e => e.course_id) // Filter out broken refs
+      .map((enr) => enr.course_id);
+
     res.json({ success: true, data: courses });
   } catch (err) {
+    console.error("❌ Fetch my-courses error:", err);
     res.status(500).json({ success: false, message: "Failed to fetch enrolled courses" });
   }
 });
+
 
 // ✅ Get enrollment status for a course
 router.get("/status/:courseId", authenticateToken, async (req, res) => {
