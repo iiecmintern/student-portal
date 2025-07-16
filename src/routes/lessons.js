@@ -164,36 +164,45 @@ router.delete('/:id', authenticateToken, requireInstructor, async (req, res) => 
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: 'Lesson not found',
       });
     }
 
-    // Check permission
-    if (lesson.course_id.created_by.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // ✅ Check if instructor owns the course or is admin
+    if (
+      lesson.course_id.created_by.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to delete this lesson'
+        message: 'Not authorized to delete this lesson',
       });
     }
 
-    // Remove lesson from course
+    // ✅ Remove lesson ID from course's lesson array
     const course = await Course.findById(lesson.course_id._id);
-    course.lessons = course.lessons.filter(l => l.toString() !== lesson._id.toString());
-    await course.save();
+    if (course) {
+      course.lessons = course.lessons.filter(
+        (l) => l.toString() !== lesson._id.toString()
+      );
+      await course.save();
+    }
 
-    await lesson.remove();
+    // ✅ Delete the lesson (fix for .remove() issue)
+    await Lesson.findByIdAndDelete(lesson._id);
 
     res.json({
       success: true,
-      message: 'Lesson deleted successfully'
+      message: 'Lesson deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting lesson:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
     });
   }
 });
+
 
 module.exports = router;

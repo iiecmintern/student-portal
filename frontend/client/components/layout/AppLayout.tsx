@@ -59,7 +59,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             icon: User,
           },
           { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
-          { name: "Manage Users", href: "/admin-dashboard", icon: UsersIcon },
+          { name: "Manage Users", href: "/admin", icon: UsersIcon },
         ]
       : [
           { name: "Courses", href: "/courses", icon: GraduationCap },

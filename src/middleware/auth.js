@@ -12,19 +12,15 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("✅ Decoded token:", decoded);
-
-    const user = await User.findById(decoded.user_id); // ← DO NOT use .select()
-    console.log("✅ Fetched user:", user);
+    const user = await User.findById(decoded.user_id);
 
     if (!user || !user.is_active) {
-      console.log("❌ User not found or inactive");
       return res.status(403).json({ success: false, message: 'Invalid or deactivated user' });
     }
 
-    // ✅ Ensure full user object is attached, including ._id and .role
     req.user = {
       _id: user._id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
       full_name: user.full_name,
@@ -40,12 +36,9 @@ const authenticateToken = async (req, res, next) => {
         ? 'Invalid token'
         : 'Authentication error';
 
-    console.log("❌ JWT error:", message);
     return res.status(401).json({ success: false, message });
   }
 };
-
-
 
 // Role-based authorization
 const authorizeRoles = (...roles) => {
@@ -59,7 +52,8 @@ const authorizeRoles = (...roles) => {
 
 // Specific role guards
 const requireAdmin = authorizeRoles('admin');
-const requireInstructor = authorizeRoles('admin', 'instructor');
+const requireInstructor = authorizeRoles('instructor');
+const requireAdminOrInstructor = authorizeRoles('admin', 'instructor');
 const requireStudent = authorizeRoles('student', 'admin', 'instructor');
 const requireParent = authorizeRoles('parent', 'admin');
 
@@ -68,6 +62,7 @@ module.exports = {
   authorizeRoles,
   requireAdmin,
   requireInstructor,
+  requireAdminOrInstructor,
   requireStudent,
   requireParent
 };
