@@ -36,6 +36,26 @@ const ManageLessons = () => {
     order: 1,
     duration: 10,
   });
+  const [quizData, setQuizData] = useState({
+    title: "",
+    description: "",
+    time_limit: 10,
+    passing_score: 70,
+    max_attempts: 3,
+    shuffle_questions: false,
+    show_results: true,
+    questions: [
+      {
+        question_text: "",
+        type: "mcq",
+        options: ["", "", "", ""],
+        correct_answer: 0,
+        explanation: "",
+        points: 1,
+      },
+    ],
+  });
+
   const [file, setFile] = useState<File | null>(null);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
@@ -349,6 +369,7 @@ const ManageLessons = () => {
                     </Button>
                   )}
                 </div>
+                
               </CardContent>
             </Card>
 
