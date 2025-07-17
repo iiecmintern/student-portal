@@ -49,15 +49,21 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ Serve uploaded images with CORS headers
-const serveUploads = express.static(path.join(__dirname, '..', 'uploads'));
-
+// ✅ Serve all uploaded files from src/uploads (including lessons)
+const serveUploads = express.static(path.join(__dirname, 'uploads'));
+// ✅ Serve general uploaded files (e.g. thumbnails in ../uploads)
 app.use('/uploads', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080'); // or * for all
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-}, serveUploads);
+}, express.static(path.join(__dirname, '..', 'uploads')));
 
+// ✅ Serve lesson uploads from src/uploads/lessons
+app.use('/uploads/lessons', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads', 'lessons')));
 
 
 // ✅ Health check endpoint
@@ -79,7 +85,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use("/api/enrollments", enrollmentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
 
 // ✅ Error handling middleware
 app.use((err, req, res, next) => {

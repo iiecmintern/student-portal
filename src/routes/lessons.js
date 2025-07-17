@@ -6,10 +6,10 @@ const { authenticateToken, requireInstructor } = require('../middleware/auth');
 const Lesson = require('../models/Lesson');
 const Course = require('../models/Course');
 
-// Setup multer for file uploads (PDF/MP4 only)
+// Setup multer for lesson file uploads (PDF/MP4 only)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads'));
+    cb(null, path.join(__dirname, '..', 'uploads', 'lessons'));
   },
   filename: (req, file, cb) => {
     const name = file.originalname.replace(/\s+/g, '_').toLowerCase();
@@ -41,7 +41,7 @@ router.post('/upload', authenticateToken, requireInstructor, upload.single('file
     data: {
       filename: file.filename,
       original_name: file.originalname,
-      url: `/uploads/${file.filename}`,
+      url: `/uploads/lessons/${file.filename}`,
       size: file.size,
       type: file.mimetype,
     },
@@ -75,7 +75,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create lesson (with optional single file attachment)
+// Create lesson
 router.post('/', authenticateToken, requireInstructor, upload.single('file'), async (req, res) => {
   try {
     const {
@@ -89,6 +89,7 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       is_free,
       resources,
       quiz,
+      attachments,
     } = req.body;
 
     const course = await Course.findById(course_id);
@@ -98,17 +99,20 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const attachments = req.file
-      ? [
-          {
-            filename: req.file.filename,
-            original_name: req.file.originalname,
-            url: `/uploads/${req.file.filename}`,
-            size: req.file.size,
-            type: req.file.mimetype,
-          },
-        ]
-      : [];
+    let lessonAttachments = [];
+    if (attachments) {
+      lessonAttachments = JSON.parse(attachments);
+    } else if (req.file) {
+      lessonAttachments = [
+        {
+          filename: req.file.filename,
+          original_name: req.file.originalname,
+          url: `/uploads/lessons/${req.file.filename}`,
+          size: req.file.size,
+          type: req.file.mimetype,
+        },
+      ];
+    }
 
     const lesson = new Lesson({
       title,
@@ -119,7 +123,7 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       video_embed_url,
       description,
       is_free,
-      attachments,
+      attachments: lessonAttachments,
       resources: resources ? JSON.parse(resources) : [],
       quiz,
     });
@@ -130,25 +134,36 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
 
     res.status(201).json({ success: true, data: lesson });
   } catch (error) {
-    console.error('Error creating lesson:', error);
+    console.error('Error creating lesson:', error.stack);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// Update lesson (supporting multiple file attachments)
+// Update lesson
 router.put('/:id', authenticateToken, requireInstructor, upload.array('attachments', 10), async (req, res) => {
   try {
     const lesson = await Lesson.findById(req.params.id).populate('course_id');
-    if (!lesson) return res.status(404).json({ success: false, message: 'Lesson not found' });
+    if (!lesson) {
+      return res.status(404).json({ success: false, message: 'Lesson not found' });
+    }
 
     if (lesson.course_id.created_by.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const newAttachments = req.files.map((file) => ({
+    let parsedResources = [];
+    let parsedAttachments = [];
+    try {
+      if (req.body.resources) parsedResources = JSON.parse(req.body.resources);
+      if (req.body.attachments) parsedAttachments = JSON.parse(req.body.attachments);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: 'Invalid JSON in resources or attachments' });
+    }
+
+    const uploadedAttachments = req.files.map((file) => ({
       filename: file.filename,
       original_name: file.originalname,
-      url: `/uploads/${file.filename}`,
+      url: `/uploads/lessons/${file.filename}`,
       size: file.size,
       type: file.mimetype,
     }));
@@ -157,8 +172,8 @@ router.put('/:id', authenticateToken, requireInstructor, upload.array('attachmen
       req.params.id,
       {
         ...req.body,
-        resources: req.body.resources ? JSON.parse(req.body.resources) : [],
-        attachments: [...lesson.attachments, ...newAttachments],
+        resources: parsedResources,
+        attachments: [...parsedAttachments, ...uploadedAttachments],
       },
       { new: true, runValidators: true }
     );
@@ -192,22 +207,18 @@ router.delete('/:id', authenticateToken, requireInstructor, async (req, res) => 
   }
 });
 
-// GET next lesson by current lesson ID
+// GET next lesson
 router.get('/:id/next', async (req, res) => {
   try {
     const current = await Lesson.findById(req.params.id);
-    if (!current) {
-      return res.status(404).json({ success: false, message: 'Lesson not found' });
-    }
+    if (!current) return res.status(404).json({ success: false, message: 'Lesson not found' });
 
     const next = await Lesson.findOne({
       course_id: current.course_id,
       order: { $gt: current.order },
     }).sort({ order: 1 });
 
-    if (!next) {
-      return res.status(404).json({ success: false, message: 'No next lesson found' });
-    }
+    if (!next) return res.status(404).json({ success: false, message: 'No next lesson found' });
 
     res.json({ success: true, data: next });
   } catch (error) {
@@ -216,5 +227,24 @@ router.get('/:id/next', async (req, res) => {
   }
 });
 
+// GET previous lesson
+router.get('/:id/prev', async (req, res) => {
+  try {
+    const current = await Lesson.findById(req.params.id);
+    if (!current) return res.status(404).json({ success: false, message: 'Lesson not found' });
+
+    const prev = await Lesson.findOne({
+      course_id: current.course_id,
+      order: { $lt: current.order },
+    }).sort({ order: -1 });
+
+    if (!prev) return res.status(404).json({ success: false, message: 'No previous lesson found' });
+
+    res.json({ success: true, data: prev });
+  } catch (error) {
+    console.error('Error fetching previous lesson:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 module.exports = router;
