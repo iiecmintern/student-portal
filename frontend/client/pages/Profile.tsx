@@ -1,6 +1,4 @@
-// Profile.tsx
-import { useState, useEffect } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +18,8 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
 
   const [passwordData, setPasswordData] = useState({
     current_password: "",
@@ -41,26 +41,20 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        "http://localhost:3001/api/auth/change-password",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            current_password: passwordData.current_password,
-            new_password: passwordData.new_password,
-          }),
+      const res = await fetch("http://localhost:3001/api/auth/change-password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password,
+        }),
+      });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to change password");
-      }
+      if (!res.ok) throw new Error(data.message || "Failed to change password");
 
       setPasswordSuccess("Password changed successfully!");
       setPasswordData({
@@ -91,10 +85,7 @@ export default function Profile() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to update profile");
-      }
+      if (!res.ok) throw new Error(data.message || "Failed to update profile");
 
       setIsEditing(false);
       setProfileMessage("Profile updated successfully!");
@@ -109,11 +100,8 @@ export default function Profile() {
   };
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   const handleAvatarButtonClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,6 +126,25 @@ export default function Profile() {
         ...user,
         profile: user.profile || {},
       });
+
+      const fetchEnrolledCourses = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch("http://localhost:3001/api/enrollments/my-courses", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await res.json();
+          setEnrolledCourses(data.data || []);
+        } catch (err) {
+          console.error("Failed to fetch enrolled courses", err);
+        }
+      };
+
+      if (user.role !== "instructor") {
+        fetchEnrolledCourses();
+      }
     }
   }, [user, navigate]);
 
@@ -154,10 +161,7 @@ export default function Profile() {
                   <Avatar className="h-24 w-24">
                     <AvatarImage src={editedData.avatar_url} />
                     <AvatarFallback className="text-2xl">
-                      {editedData.full_name
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")}
+                      {editedData.full_name.split(" ").map((n: string) => n[0]).join("")}
                     </AvatarFallback>
                   </Avatar>
 
@@ -183,9 +187,7 @@ export default function Profile() {
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-3">
-                    <h1 className="text-3xl font-bold">
-                      {editedData.full_name}
-                    </h1>
+                    <h1 className="text-3xl font-bold">{editedData.full_name}</h1>
                     <Badge variant="secondary">{editedData.role}</Badge>
                   </div>
                   <p className="text-muted-foreground">{editedData.email}</p>
@@ -201,20 +203,8 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
-              <Button
-                onClick={() =>
-                  isEditing ? handleCancel() : setIsEditing(true)
-                }
-              >
-                {isEditing ? (
-                  <>
-                    <X className="mr-2 h-4 w-4" /> Cancel
-                  </>
-                ) : (
-                  <>
-                    <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                  </>
-                )}
+              <Button onClick={() => (isEditing ? handleCancel() : setIsEditing(true))}>
+                {isEditing ? <><X className="mr-2 h-4 w-4" /> Cancel</> : <><Edit className="mr-2 h-4 w-4" /> Edit Profile</>}
               </Button>
             </div>
           </CardContent>
@@ -223,8 +213,8 @@ export default function Profile() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            {editedData.role !== "instructor" && <TabsTrigger value="courses">Courses</TabsTrigger>}
+            {editedData.role !== "instructor" && <TabsTrigger value="certificates">Certificates</TabsTrigger>}
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -252,14 +242,9 @@ export default function Profile() {
                       rows={4}
                     />
                     <Button onClick={handleSave}>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Changes
+                      <Save className="mr-2 h-4 w-4" /> Save Changes
                     </Button>
-                    {profileMessage && (
-                      <p className="text-sm text-muted-foreground">
-                        {profileMessage}
-                      </p>
-                    )}
+                    {profileMessage && <p className="text-sm text-muted-foreground">{profileMessage}</p>}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">
@@ -269,6 +254,66 @@ export default function Profile() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {editedData.role !== "instructor" && (
+            <TabsContent value="courses" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Courses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {enrolledCourses.length === 0 ? (
+                      <p className="text-muted-foreground">No enrolled courses yet.</p>
+                    ) : (
+                      enrolledCourses.map((course: any) => (
+                        <div
+                          key={course._id}
+                          className="flex items-center space-x-4 p-4 border rounded-lg"
+                        >
+                          <img
+                            src={
+                              course.thumbnail_url
+                                ? `http://localhost:3001${course.thumbnail_url}`
+                                : "https://via.placeholder.com/120x80"
+                            }
+                            alt={course.title}
+                            className="w-16 h-12 rounded object-cover"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-semibold">{course.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {course.created_by?.full_name || "Instructor"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/course/${course._id}`)}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {editedData.role !== "instructor" && (
+            <TabsContent value="certificates" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Certificates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Coming soon.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           <TabsContent value="settings" className="space-y-6">
             <Card>
@@ -311,8 +356,7 @@ export default function Profile() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Shield className="inline-block mr-2 h-4 w-4" />
-                  Change Password
+                  <Shield className="inline-block mr-2 h-4 w-4" /> Change Password
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -358,14 +402,8 @@ export default function Profile() {
                     }
                   />
                 </div>
-
-                {passwordError && (
-                  <p className="text-red-500 text-sm">{passwordError}</p>
-                )}
-                {passwordSuccess && (
-                  <p className="text-green-600 text-sm">{passwordSuccess}</p>
-                )}
-
+                {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+                {passwordSuccess && <p className="text-green-600 text-sm">{passwordSuccess}</p>}
                 <Button onClick={handlePasswordChange}>Update Password</Button>
               </CardContent>
             </Card>
