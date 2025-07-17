@@ -22,7 +22,22 @@ const PORT = process.env.PORT || 3001;
 connectDB();
 
 // ✅ Security middleware
-app.use(helmet());
+// ✅ Security middleware with CSP allowing iframe from localhost:8080
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:"],
+      frameSrc: ["'self'", "http://localhost:8080"], // ✅ Allow embedding from React app
+      frameAncestors: ["'self'", "http://localhost:8080"], // ✅ Fix iframe error
+      objectSrc: ["'none'"]
+    }
+  },
+}));
+
 
 // ✅ CORS configuration
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080'];

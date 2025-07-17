@@ -83,14 +83,64 @@ export default function LessonViewer() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 space-y-6">
         <h1 className="text-3xl font-bold">{lesson.title}</h1>
-        <p className="text-muted-foreground">
-          Duration:{" "}
-          {lesson.duration
-            ? `${Math.floor(lesson.duration / 60)}m ${lesson.duration % 60}s`
-            : "N/A"}
-        </p>
 
-        {/* Video Embed */}
+        {/* Attachments First */}
+        {lesson.attachments?.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Attachments</h2>
+            {lesson.attachments.map((file: any) => {
+              const fileUrl = `${BACKEND_URL}/uploads/lessons/${file.filename}`;
+              const isVideo = file.type.startsWith("video/");
+              const isPDF = file.type === "application/pdf";
+
+              return (
+                <div key={file.filename} className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    {isVideo ? (
+                      <Video className="text-blue-600" />
+                    ) : (
+                      <FileText className="text-blue-600" />
+                    )}
+                    <span className="font-medium">{file.original_name}</span>
+
+                    <a
+                      href={fileUrl}
+                      download={file.original_name}
+                      className="ml-2 inline-flex items-center px-2 py-1 border border-gray-300 text-sm rounded hover:bg-gray-100"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </a>
+                  </div>
+
+                  {isVideo && (
+                    <video controls className="w-full max-w-3xl rounded shadow">
+                      <source src={fileUrl} type={file.type} />
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
+
+                  {isPDF && (
+                    <iframe
+                      src={fileUrl}
+                      title="PDF Preview"
+                      className="w-full h-[600px] border rounded"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Main Content Second */}
+        <Card>
+          <CardContent className="prose max-w-none p-6">
+            <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+          </CardContent>
+        </Card>
+
+        {/* Video Embed URL */}
         {lesson.video_embed_url && (
           <div className="aspect-video mb-4">
             <iframe
@@ -99,53 +149,6 @@ export default function LessonViewer() {
               allowFullScreen
               className="w-full h-full rounded-lg"
             />
-          </div>
-        )}
-
-        {/* Content */}
-        <Card>
-          <CardContent className="prose max-w-none p-6">
-            <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
-          </CardContent>
-        </Card>
-
-        {/* Attachments */}
-        {/* Attachments */}
-        {lesson.attachments?.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Attachments</h2>
-            {lesson.attachments.map((file: any) => {
-              const fileUrl = `${BACKEND_URL}/uploads/lessons/${file.filename}`;
-              return (
-                <div key={file.filename} className="flex items-center gap-3">
-                  {file.type.startsWith("video") ? (
-                    <Video className="text-blue-600" />
-                  ) : (
-                    <FileText className="text-blue-600" />
-                  )}
-
-                  {/* Open in new tab */}
-                  <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-blue-700 hover:text-blue-900"
-                  >
-                    {file.original_name}
-                  </a>
-
-                  {/* Download button */}
-                  <a
-                    href={fileUrl}
-                    download={file.original_name}
-                    className="ml-2 inline-flex items-center px-2 py-1 border border-gray-300 text-sm rounded hover:bg-gray-100"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </a>
-                </div>
-              );
-            })}
           </div>
         )}
 
@@ -173,6 +176,14 @@ export default function LessonViewer() {
             ))}
           </div>
         )}
+
+        {/* Duration Last */}
+        <p className="text-muted-foreground text-sm">
+          Duration:{" "}
+          {lesson.duration
+            ? `${Math.floor(lesson.duration / 60)}m ${lesson.duration % 60}s`
+            : "N/A"}
+        </p>
 
         {/* Navigation */}
         <div className="flex justify-between pt-6">

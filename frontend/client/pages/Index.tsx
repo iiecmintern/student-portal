@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,51 +17,6 @@ import {
   Zap,
   Shield,
 } from "lucide-react";
-
-const featuredCourses = [
-  {
-    id: 1,
-    title: "Complete React Developer Course",
-    instructor: "Sarah Johnson",
-    rating: 4.9,
-    students: 12450,
-    price: 79.99,
-    originalPrice: 129.99,
-    image:
-      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=200&fit=crop",
-    level: "Intermediate",
-    duration: "40 hours",
-    category: "Web Development",
-  },
-  {
-    id: 2,
-    title: "Machine Learning Fundamentals",
-    instructor: "Dr. Michael Chen",
-    rating: 4.8,
-    students: 8230,
-    price: 89.99,
-    originalPrice: 149.99,
-    image:
-      "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=200&fit=crop",
-    level: "Beginner",
-    duration: "35 hours",
-    category: "Data Science",
-  },
-  {
-    id: 3,
-    title: "UI/UX Design Masterclass",
-    instructor: "Emma Rodriguez",
-    rating: 4.9,
-    students: 15680,
-    price: 69.99,
-    originalPrice: 119.99,
-    image:
-      "https://images.unsplash.com/photo-1558655146-d09347e92766?w=400&h=200&fit=crop",
-    level: "Beginner",
-    duration: "28 hours",
-    category: "Design",
-  },
-];
 
 const features = [
   {
@@ -104,6 +60,20 @@ const stats = [
 ];
 
 export default function Index() {
+  // const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
+
+  // useEffect(() => {
+  //   const fetchFeatured = async () => {
+  //     try {
+  //       const res = await fetch("http://localhost:3001/api/courses/featured");
+  //       const data = await res.json();
+  //       if (data.success) setFeaturedCourses(data.data);
+  //     } catch (err) {
+  //       console.error("Failed to load featured courses", err);
+  //     }
+  //   };
+  //   fetchFeatured();
+  // }, []);
   return (
     <AppLayout>
       {/* Hero Section */}
@@ -232,7 +202,7 @@ export default function Index() {
       </section>
 
       {/* Featured Courses */}
-      <section className="py-24 bg-muted/40">
+      {/* <section className="py-24 bg-muted/40">
         <div className="container px-4">
           <div className="flex items-center justify-between mb-12">
             <div className="space-y-4">
@@ -254,23 +224,23 @@ export default function Index() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featuredCourses.map((course) => (
               <Card
-                key={course.id}
+                key={course._id}
                 className="overflow-hidden group cursor-pointer"
               >
                 <div className="relative">
                   <img
-                    src={course.image}
+                    src={`http://localhost:3001${course.thumbnail_url}`}
                     alt={course.title}
                     className="w-full h-48 object-cover transition-transform group-hover:scale-105"
                   />
                   <div className="absolute top-4 left-4">
                     <Badge variant="secondary" className="bg-background/90">
-                      {course.category}
+                      {course.category.replace(/-/g, " ")}
                     </Badge>
                   </div>
                   <div className="absolute top-4 right-4">
                     <Badge variant="outline" className="bg-background/90">
-                      {course.level}
+                      {course.difficulty}
                     </Badge>
                   </div>
                 </div>
@@ -282,22 +252,24 @@ export default function Index() {
                     </h3>
 
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{course.instructor}</span>
+                      <span>{course.instructor_name || "Instructor"}</span>
                       <div className="flex items-center space-x-1">
                         <Clock className="h-4 w-4" />
-                        <span>{course.duration}</span>
+                        <span>{course.duration || "~"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">{course.rating}</span>
+                        <span className="font-medium">
+                          {course.rating || 4.5}
+                        </span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Users className="h-4 w-4" />
                         <span className="text-sm text-muted-foreground">
-                          {course.students.toLocaleString()} students
+                          {course.enrollments?.toLocaleString() || 0} students
                         </span>
                       </div>
                     </div>
@@ -307,9 +279,11 @@ export default function Index() {
                         <span className="text-2xl font-bold text-primary">
                           ${course.price}
                         </span>
-                        <span className="text-sm text-muted-foreground line-through">
-                          ${course.originalPrice}
-                        </span>
+                        {course.originalPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            ${course.originalPrice}
+                          </span>
+                        )}
                       </div>
                       <Button size="sm">
                         <BookOpen className="mr-2 h-4 w-4" />
@@ -322,7 +296,7 @@ export default function Index() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Testimonials Section */}
       <section className="py-24">
