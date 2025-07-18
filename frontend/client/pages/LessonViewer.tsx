@@ -12,6 +12,7 @@ import {
   Link,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import QuizAttempt from "@/components/QuizAttempt";
 
 const BACKEND_URL = "http://localhost:3001";
 
@@ -19,6 +20,7 @@ export default function LessonViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [lesson, setLesson] = useState<any | null>(null);
+  const [quiz, setQuiz] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -36,6 +38,30 @@ export default function LessonViewer() {
     };
     fetchLesson();
   }, [id]);
+
+  useEffect(() => {
+  const fetchQuiz = async () => {
+    if (lesson?.quiz && typeof lesson.quiz === "string") {
+      try {
+        const res = await axios.get(`${BACKEND_URL}/api/quizzes/${lesson.quiz}`);
+        if (res.data?.data?.questions?.length > 0) {
+          setQuiz(res.data.data);
+        } else {
+          setQuiz(null); // No valid quiz
+        }
+      } catch (err) {
+        console.error("Error fetching quiz:", err);
+        setQuiz(null);
+      }
+    } else if (lesson?.quiz?.questions?.length > 0) {
+      setQuiz(lesson.quiz); // Already populated and valid
+    } else {
+      setQuiz(null); // No valid quiz
+    }
+  };
+  fetchQuiz();
+}, [lesson]);
+
 
   const handleNextLesson = async () => {
     try {
@@ -84,7 +110,7 @@ export default function LessonViewer() {
       <div className="container mx-auto px-4 py-8 space-y-6">
         <h1 className="text-3xl font-bold">{lesson.title}</h1>
 
-        {/* Attachments First */}
+        {/* Attachments */}
         {lesson.attachments?.length > 0 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Attachments</h2>
@@ -96,13 +122,8 @@ export default function LessonViewer() {
               return (
                 <div key={file.filename} className="space-y-2">
                   <div className="flex items-center gap-3">
-                    {isVideo ? (
-                      <Video className="text-blue-600" />
-                    ) : (
-                      <FileText className="text-blue-600" />
-                    )}
+                    {isVideo ? <Video className="text-blue-600" /> : <FileText className="text-blue-600" />}
                     <span className="font-medium">{file.original_name}</span>
-
                     <a
                       href={fileUrl}
                       download={file.original_name}
@@ -112,14 +133,12 @@ export default function LessonViewer() {
                       Download
                     </a>
                   </div>
-
                   {isVideo && (
                     <video controls className="w-full max-w-3xl rounded shadow">
                       <source src={fileUrl} type={file.type} />
                       Your browser does not support the video tag.
                     </video>
                   )}
-
                   {isPDF && (
                     <iframe
                       src={fileUrl}
@@ -133,14 +152,14 @@ export default function LessonViewer() {
           </div>
         )}
 
-        {/* Main Content Second */}
+        {/* Main Content */}
         <Card>
           <CardContent className="prose max-w-none p-6">
             <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
           </CardContent>
         </Card>
 
-        {/* Video Embed URL */}
+        {/* Video */}
         {lesson.video_embed_url && (
           <div className="aspect-video mb-4">
             <iframe
@@ -169,15 +188,20 @@ export default function LessonViewer() {
                     {res.title}
                   </a>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {res.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{res.description}</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Duration Last */}
+        {/* Quiz */}
+        {quiz && quiz.questions?.length > 0 ? (
+          <QuizAttempt quiz={quiz} lessonId={lesson._id} />
+        ) : (
+          <p></p>
+        )}
+
+        {/* Duration */}
         <p className="text-muted-foreground text-sm">
           Duration:{" "}
           {lesson.duration
@@ -191,11 +215,7 @@ export default function LessonViewer() {
             <ArrowLeft className="mr-2 w-4 h-4" />
             Previous Lesson
           </Button>
-
-          <Button
-            className="bg-green-600 hover:bg-green-700 text-white"
-            onClick={handleNextLesson}
-          >
+          <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleNextLesson}>
             Next Lesson <ArrowRight className="ml-2 w-4 h-4" />
           </Button>
         </div>

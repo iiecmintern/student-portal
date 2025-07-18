@@ -82,7 +82,6 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       title,
       content,
       course_id,
-      order,
       duration,
       video_embed_url,
       description,
@@ -92,6 +91,7 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       attachments,
     } = req.body;
 
+    // ✅ Validate course existence and authorization
     const course = await Course.findById(course_id);
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
 
@@ -99,6 +99,11 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    // ✅ Auto-increment order logic
+    const lastLesson = await Lesson.find({ course_id }).sort({ order: -1 }).limit(1);
+    const nextOrder = lastLesson.length ? lastLesson[0].order + 1 : 1;
+
+    // ✅ Parse attachments
     let lessonAttachments = [];
     if (attachments) {
       lessonAttachments = JSON.parse(attachments);
@@ -114,11 +119,12 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
       ];
     }
 
+    // ✅ Create lesson
     const lesson = new Lesson({
       title,
       content,
       course_id,
-      order,
+      order: nextOrder, // 🆕 Use auto-incremented value
       duration,
       video_embed_url,
       description,
@@ -138,6 +144,7 @@ router.post('/', authenticateToken, requireInstructor, upload.single('file'), as
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 // Update lesson
 router.put('/:id', authenticateToken, requireInstructor, upload.array('attachments', 10), async (req, res) => {
