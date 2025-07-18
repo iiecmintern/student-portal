@@ -5,7 +5,8 @@ const attachmentSchema = new mongoose.Schema({
   original_name: { type: String, required: true },
   url: { type: String, required: true },
   size: { type: Number, required: true },
-  type: { type: String, required: true }
+  type: { type: String, required: true },
+  is_downloadable: { type: Boolean, default: false }
 }, { _id: false });
 
 const resourceSchema = new mongoose.Schema({

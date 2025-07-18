@@ -7,31 +7,70 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Clock, Award, CheckCircle } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "@/AuthContext"; // ✅ imported here
 
 export default function MyLearning() {
-  const [courses, setCourses] = useState([]);
+  const { user } = useAuth(); // ✅ using user from AuthContext
+  const [courses, setCourses] = useState<any[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [hoursLearned, setHoursLearned] = useState("0h 0m");
+  const [certificateCount, setCertificateCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://localhost:3001/api/enrollments/my-courses",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const res = await axios.get("http://localhost:3001/api/enrollments/my-courses", { headers });
+        const courseList = res.data.data;
+        setCourses(courseList);
+
+        const progressResponses = await Promise.all(
+          courseList.map((course: any) =>
+            axios
+              .get(`http://localhost:3001/api/analytics/progress/${course._id}`, { headers })
+              .then((res) => ({
+                courseId: course._id,
+                progress: res.data?.data?.progress || 0,
+              }))
+              .catch(() => ({
+                courseId: course._id,
+                progress: 0,
+              }))
+          )
         );
-        setCourses(res.data.data);
-      } catch (error) {
-        console.error("Failed to fetch enrolled courses", error);
+
+        const progressData: Record<string, number> = {};
+        let completed = 0;
+        progressResponses.forEach(({ courseId, progress }) => {
+          progressData[courseId] = progress;
+          if (progress === 100) completed += 1;
+        });
+        setProgressMap(progressData);
+        setCertificateCount(completed);
+
+        const hoursRes = await axios.get("http://localhost:3001/api/analytics/hours", { headers });
+        const totalMinutes = hoursRes.data?.data?.totalDurationMinutes || 0;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        setHoursLearned(`${hours}h ${minutes}m`);
+      } catch (err) {
+        console.error("Error loading MyLearning data:", err);
       }
     };
 
-    fetchEnrolledCourses();
+    fetchData();
   }, []);
+
+  if (!user) {
+    return (
+      <AppLayout>
+        <div className="container p-8 text-center">Loading user info...</div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -53,9 +92,7 @@ export default function MyLearning() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{courses.length}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Enrolled Courses
-                  </p>
+                  <p className="text-sm text-muted-foreground">Enrolled Courses</p>
                 </div>
               </div>
             </CardContent>
@@ -68,7 +105,7 @@ export default function MyLearning() {
                   <CheckCircle className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-2xl font-bold">{certificateCount}</p>
                   <p className="text-sm text-muted-foreground">Completed</p>
                 </div>
               </div>
@@ -82,7 +119,7 @@ export default function MyLearning() {
                   <Clock className="h-6 w-6 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-2xl font-bold">{hoursLearned}</p>
                   <p className="text-sm text-muted-foreground">Hours Learned</p>
                 </div>
               </div>
@@ -96,7 +133,7 @@ export default function MyLearning() {
                   <Award className="h-6 w-6 text-info" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-2xl font-bold">{certificateCount}</p>
                   <p className="text-sm text-muted-foreground">Certificates</p>
                 </div>
               </div>
@@ -104,7 +141,7 @@ export default function MyLearning() {
           </Card>
         </div>
 
-        {/* All My Enrolled Courses */}
+        {/* Course List */}
         <Card>
           <CardHeader>
             <CardTitle>All My Courses</CardTitle>
@@ -112,48 +149,66 @@ export default function MyLearning() {
           <CardContent>
             <div className="space-y-4">
               {courses.length === 0 ? (
-                <p className="text-muted-foreground">
-                  You have not enrolled in any courses yet.
-                </p>
+                <p className="text-muted-foreground">You have not enrolled in any courses yet.</p>
               ) : (
-                courses.map((course: any) => (
-                  <div
-                    key={course._id}
-                    className="flex items-center space-x-4 p-4 border rounded-lg"
-                  >
-                    <img
-                      src={
-                        course.thumbnail_url
-                          ? `http://localhost:3001${course.thumbnail_url}`
-                          : "https://via.placeholder.com/120x80"
-                      }
-                      alt={course.title}
-                      className="w-16 h-12 rounded object-cover"
-                    />
+                courses.map((course) => {
+                  const progress = progressMap[course._id] || 0;
+                  const isComplete = progress === 100;
 
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{course.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {course.created_by?.full_name || "Instructor"}
-                      </p>
-                    </div>
-
-                    <div className="text-center">
-                      <p className="text-sm font-medium">0%</p>
-                      <Progress value={0} className="w-20 h-2" />
-                    </div>
-
-                    <Badge variant="secondary">In Progress</Badge>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/course/${course._id}`)}
+                  return (
+                    <div
+                      key={course._id}
+                      className="flex items-center space-x-4 p-4 border rounded-lg"
                     >
-                      View
-                    </Button>
-                  </div>
-                ))
+                      <img
+                        src={
+                          course.thumbnail_url
+                            ? `http://localhost:3001${course.thumbnail_url}`
+                            : "https://via.placeholder.com/120x80"
+                        }
+                        alt={course.title}
+                        className="w-16 h-12 rounded object-cover"
+                      />
+
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{course.title}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {course.created_by?.full_name || "Instructor"}
+                        </p>
+                      </div>
+
+                      <div className="text-center">
+                        <p className="text-sm font-medium">{progress}%</p>
+                        <Progress value={progress} className="w-20 h-2" />
+                      </div>
+
+                      {isComplete ? (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            navigate(
+                              `/certificate?course=${encodeURIComponent(
+                                course.title
+                              )}&name=${encodeURIComponent(user.full_name)}`
+                            )
+                          }
+                        >
+                          View Certificate
+                        </Button>
+                      ) : (
+                        <Badge variant="secondary">In Progress</Badge>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/course/${course._id}`)}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </CardContent>

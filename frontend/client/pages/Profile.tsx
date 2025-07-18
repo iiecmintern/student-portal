@@ -20,6 +20,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [certificateCourses, setCertificateCourses] = useState<any[]>([]);
 
   const [passwordData, setPasswordData] = useState({
     current_password: "",
@@ -29,6 +30,26 @@ export default function Profile() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleAvatarButtonClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditedData((prev: any) => ({
+        ...prev,
+        avatar_url: reader.result,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handlePasswordChange = async () => {
     setPasswordError("");
@@ -41,17 +62,20 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3001/api/auth/change-password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        "http://localhost:3001/api/auth/change-password",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            current_password: passwordData.current_password,
+            new_password: passwordData.new_password,
+          }),
         },
-        body: JSON.stringify({
-          current_password: passwordData.current_password,
-          new_password: passwordData.new_password,
-        }),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to change password");
@@ -99,51 +123,62 @@ export default function Profile() {
     setIsEditing(false);
   };
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const handleAvatarButtonClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditedData((prev: any) => ({
-        ...prev,
-        avatar_url: reader.result,
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
   useEffect(() => {
     if (!user) {
       navigate("/login");
     } else {
-      setEditedData({
-        ...user,
-        profile: user.profile || {},
-      });
+      setEditedData({ ...user, profile: user.profile || {} });
 
       const fetchEnrolledCourses = async () => {
         try {
           const token = localStorage.getItem("token");
-          const res = await fetch("http://localhost:3001/api/enrollments/my-courses", {
-            headers: {
-              Authorization: `Bearer ${token}`,
+          const res = await fetch(
+            "http://localhost:3001/api/enrollments/my-courses",
+            {
+              headers: { Authorization: `Bearer ${token}` },
             },
-          });
+          );
           const data = await res.json();
           setEnrolledCourses(data.data || []);
+          return data.data || [];
         } catch (err) {
           console.error("Failed to fetch enrolled courses", err);
+          return [];
         }
       };
 
+      const fetchCertificateCourses = async (courses: any[]) => {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const results = await Promise.all(
+          courses.map((course: any) =>
+            fetch(
+              `http://localhost:3001/api/analytics/progress/${course._id}`,
+              {
+                headers,
+              },
+            )
+              .then((res) => res.json())
+              .then((data) => ({
+                course,
+                progress: data?.data?.progress || 0,
+              }))
+              .catch(() => ({ course, progress: 0 })),
+          ),
+        );
+
+        const completedCourses = results
+          .filter(({ progress }) => progress === 100)
+          .map(({ course }) => course);
+
+        setCertificateCourses(completedCourses);
+      };
+
       if (user.role !== "instructor") {
-        fetchEnrolledCourses();
+        fetchEnrolledCourses().then((courses) => {
+          fetchCertificateCourses(courses);
+        });
       }
     }
   }, [user, navigate]);
@@ -153,6 +188,7 @@ export default function Profile() {
   return (
     <AppLayout>
       <div className="container px-4 py-8 max-w-6xl">
+        {/* Avatar & Header */}
         <Card className="mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -161,10 +197,12 @@ export default function Profile() {
                   <Avatar className="h-24 w-24">
                     <AvatarImage src={editedData.avatar_url} />
                     <AvatarFallback className="text-2xl">
-                      {editedData.full_name.split(" ").map((n: string) => n[0]).join("")}
+                      {editedData.full_name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
-
                   {isEditing && (
                     <>
                       <input
@@ -187,34 +225,56 @@ export default function Profile() {
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-3">
-                    <h1 className="text-3xl font-bold">{editedData.full_name}</h1>
+                    <h1 className="text-3xl font-bold">
+                      {editedData.full_name}
+                    </h1>
                     <Badge variant="secondary">{editedData.role}</Badge>
                   </div>
                   <p className="text-muted-foreground">{editedData.email}</p>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1">
+                  <div className="flex space-x-4 text-sm text-muted-foreground">
+                    {/* <div className="flex items-center space-x-1">
                       <MapPin className="h-4 w-4" />
                       <span>{editedData.location || "Unknown"}</span>
-                    </div>
+                    </div> */}
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
-                      <span>Joined {editedData.joinedDate || "N/A"}</span>
+                      <span>
+                        Joined{" "}
+                        {new Date(editedData.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-              <Button onClick={() => (isEditing ? handleCancel() : setIsEditing(true))}>
-                {isEditing ? <><X className="mr-2 h-4 w-4" /> Cancel</> : <><Edit className="mr-2 h-4 w-4" /> Edit Profile</>}
+              <Button
+                onClick={() =>
+                  isEditing ? handleCancel() : setIsEditing(true)
+                }
+              >
+                {isEditing ? (
+                  <>
+                    <X className="mr-2 h-4 w-4" /> Cancel
+                  </>
+                ) : (
+                  <>
+                    <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
         </Card>
 
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            {editedData.role !== "instructor" && <TabsTrigger value="courses">Courses</TabsTrigger>}
-            {editedData.role !== "instructor" && <TabsTrigger value="certificates">Certificates</TabsTrigger>}
+            {editedData.role !== "instructor" && (
+              <TabsTrigger value="courses">Courses</TabsTrigger>
+            )}
+            {editedData.role !== "instructor" && (
+              <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            )}
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -225,10 +285,11 @@ export default function Profile() {
               </CardHeader>
               <CardContent>
                 {isEditing ? (
-                  <div className="space-y-4">
+                  <>
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
                       id="bio"
+                      rows={4}
                       value={editedData.profile?.bio || ""}
                       onChange={(e) =>
                         setEditedData({
@@ -239,13 +300,16 @@ export default function Profile() {
                           },
                         })
                       }
-                      rows={4}
                     />
                     <Button onClick={handleSave}>
                       <Save className="mr-2 h-4 w-4" /> Save Changes
                     </Button>
-                    {profileMessage && <p className="text-sm text-muted-foreground">{profileMessage}</p>}
-                  </div>
+                    {profileMessage && (
+                      <p className="text-sm text-muted-foreground">
+                        {profileMessage}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="text-muted-foreground">
                     {editedData.profile?.bio || "No bio added."}
@@ -262,11 +326,13 @@ export default function Profile() {
                   <CardTitle>My Courses</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {enrolledCourses.length === 0 ? (
-                      <p className="text-muted-foreground">No enrolled courses yet.</p>
-                    ) : (
-                      enrolledCourses.map((course: any) => (
+                  {enrolledCourses.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      No enrolled courses yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {enrolledCourses.map((course: any) => (
                         <div
                           key={course._id}
                           className="flex items-center space-x-4 p-4 border rounded-lg"
@@ -294,9 +360,9 @@ export default function Profile() {
                             View
                           </Button>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -309,7 +375,48 @@ export default function Profile() {
                   <CardTitle>Certificates</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">Coming soon.</p>
+                  {certificateCourses.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      You have not completed any courses yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {certificateCourses.map((course: any) => (
+                        <div
+                          key={course._id}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <img
+                              src={
+                                course.thumbnail_url
+                                  ? `http://localhost:3001${course.thumbnail_url}`
+                                  : "https://via.placeholder.com/120x80"
+                              }
+                              alt={course.title}
+                              className="w-16 h-12 rounded object-cover"
+                            />
+                            <div>
+                              <h4 className="font-semibold">{course.title}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Completed by {user.full_name}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              navigate(
+                                `/certificate?course=${encodeURIComponent(course.title)}&name=${encodeURIComponent(user.full_name)}`,
+                              )
+                            }
+                          >
+                            View Certificate
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -321,89 +428,68 @@ export default function Profile() {
                 <CardTitle>Personal Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      value={editedData.full_name}
-                      onChange={(e) =>
-                        setEditedData({
-                          ...editedData,
-                          full_name: e.target.value,
-                        })
-                      }
-                      readOnly={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={editedData.email}
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <Input id="role" value={editedData.role} readOnly />
-                  </div>
-                </div>
+                <Label>Full Name</Label>
+                <Input
+                  value={editedData.full_name}
+                  onChange={(e) =>
+                    setEditedData({ ...editedData, full_name: e.target.value })
+                  }
+                  readOnly={!isEditing}
+                />
+                <Label>Email</Label>
+                <Input value={editedData.email} readOnly />
+                <Label>Role</Label>
+                <Input value={editedData.role} readOnly />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Shield className="inline-block mr-2 h-4 w-4" /> Change Password
+                  <Shield className="inline-block mr-2 h-4 w-4" /> Change
+                  Password
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="current_password">Current Password</Label>
-                  <Input
-                    id="current_password"
-                    type="password"
-                    value={passwordData.current_password}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        current_password: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new_password">New Password</Label>
-                  <Input
-                    id="new_password"
-                    type="password"
-                    value={passwordData.new_password}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        new_password: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    value={passwordData.confirm_password}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        confirm_password: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
-                {passwordSuccess && <p className="text-green-600 text-sm">{passwordSuccess}</p>}
+                <Label>Current Password</Label>
+                <Input
+                  type="password"
+                  value={passwordData.current_password}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      current_password: e.target.value,
+                    })
+                  }
+                />
+                <Label>New Password</Label>
+                <Input
+                  type="password"
+                  value={passwordData.new_password}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      new_password: e.target.value,
+                    })
+                  }
+                />
+                <Label>Confirm Password</Label>
+                <Input
+                  type="password"
+                  value={passwordData.confirm_password}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      confirm_password: e.target.value,
+                    })
+                  }
+                />
+                {passwordError && (
+                  <p className="text-red-500 text-sm">{passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p className="text-green-600 text-sm">{passwordSuccess}</p>
+                )}
                 <Button onClick={handlePasswordChange}>Update Password</Button>
               </CardContent>
             </Card>

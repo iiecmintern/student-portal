@@ -3,12 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, XCircle } from "lucide-react";
+import axios from "axios";
+
+const BACKEND_URL = "http://localhost:3001";
 
 interface QuizAttemptProps {
   quiz?: {
     _id: string;
     title: string;
     description: string;
+    passing_score?: number;
+    max_attempts?: number;
     questions: {
       question_text: string;
       options: string[];
@@ -22,33 +27,70 @@ export default function QuizAttempt({ quiz, lessonId }: QuizAttemptProps) {
   const [answers, setAnswers] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [percentage, setPercentage] = useState(0);
+  const [passed, setPassed] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [maxAttempts, setMaxAttempts] = useState(quiz?.max_attempts || 10);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ⏳ Initialize answer array when quiz loads
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     if (quiz?.questions?.length) {
       setAnswers(Array(quiz.questions.length).fill(-1));
     }
+    if (quiz?.max_attempts) {
+      setMaxAttempts(quiz.max_attempts);
+    }
   }, [quiz]);
 
-  // ✅ Update selected answer for a question
   const handleSelect = (qIndex: number, optionIndex: number) => {
     const updated = [...answers];
     updated[qIndex] = optionIndex;
     setAnswers(updated);
   };
 
-  // 🎯 Evaluate score on submission
-  const handleSubmit = () => {
-    if (!quiz?.questions) return;
-    let correct = 0;
-    quiz.questions.forEach((q, i) => {
-      if (answers[i] === q.correct_answer) correct++;
-    });
-    setScore(correct);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!quiz?._id || answers.includes(-1)) {
+      alert("⚠️ Please answer all questions before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await axios.post(
+        `${BACKEND_URL}/api/quiz-attempts`,
+        {
+          quizId: quiz._id,
+          lessonId,
+          answers,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const attempt = res.data.data;
+      setScore(attempt.correctAnswers);
+      setPercentage(attempt.percentage);
+      setPassed(attempt.passed);
+      setAttemptCount(attempt.attemptNumber);
+      setSubmitted(true);
+    } catch (err: any) {
+      if (err?.response?.status === 403) {
+        alert("⚠️ You have reached the maximum number of attempts.");
+        setSubmitted(true);
+      } else {
+        console.error("Quiz submission failed:", err);
+        alert("❌ An error occurred while submitting the quiz.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // ❗ Guard: Quiz not found or invalid
   if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
     return (
       <div className="text-red-600 bg-red-100 border border-red-300 p-4 rounded mt-6">
@@ -96,11 +138,23 @@ export default function QuizAttempt({ quiz, lessonId }: QuizAttemptProps) {
         ))}
 
         {!submitted ? (
-          <Button onClick={handleSubmit}>Submit Quiz</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit Quiz"}
+          </Button>
         ) : (
-          <p className="text-green-700 font-semibold">
-            ✅ You scored {score} out of {quiz.questions.length}
-          </p>
+          <div className="space-y-2">
+            <p className={`font-semibold ${passed ? "text-green-700" : "text-red-700"}`}>
+              ✅ You scored {score} out of {quiz.questions.length} ({percentage}%)
+            </p>
+            {passed ? (
+              <p className="text-blue-600">🎉 You passed the quiz!</p>
+            ) : (
+              <p className="text-red-600">❌ You did not pass. Try again if allowed.</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Attempt {attemptCount} / {maxAttempts}
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -1,13 +1,13 @@
 import "./global.css";
 
 import { Toaster } from "@/components/ui/toaster";
-import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createRoot } from "react-dom/client";
 
-import { AuthProvider } from "@/AuthContext"; 
+import { AuthProvider } from "@/AuthContext";
 import ManageLessons from "./pages/ManageLessons";
 import Index from "./pages/Index";
 import Courses from "./pages/Courses";
@@ -30,7 +30,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider> {/* ✅ WRAP EVERYTHING IN AUTH CONTEXT */}
+      <AuthProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -40,13 +40,9 @@ const App = () => (
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/my-learning" element={<MyLearning />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/certificate/:id" element={<Certificate />} />
-            <Route
-              path="/instructor-dashboard"
-              element={<InstructorDashboard />}
-            />
+            <Route path="/certificate" element={<Certificate />} />
+            <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
             <Route path="/lessons" element={<ManageLessons />} />
-
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

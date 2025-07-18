@@ -36,6 +36,7 @@ interface UploadedFile {
   filename: string;
   url: string;
   type: string;
+  is_downloadable?: boolean;
 }
 
 const ManageLessons = () => {
@@ -49,6 +50,7 @@ const ManageLessons = () => {
     duration: 10,
   });
   const [quizEnabled, setQuizEnabled] = useState(false);
+  const [isDownloadable, setIsDownloadable] = useState(false);
 
   const [quizData, setQuizData] = useState({
     title: "",
@@ -178,11 +180,11 @@ const ManageLessons = () => {
     try {
       let uploadedFileInfo = null;
       if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
         const uploadRes = await axios.post(
           "http://localhost:3001/api/lessons/upload",
-          formData,
+          uploadFormData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -193,21 +195,30 @@ const ManageLessons = () => {
         uploadedFileInfo = uploadRes.data.data;
       }
 
-      const payload = {
-        ...newLesson,
-        course_id: selectedCourseId,
-        attachments: uploadedFileInfo
-          ? JSON.stringify([uploadedFileInfo])
-          : JSON.stringify([]),
-      };
+      const formData = new FormData();
+      formData.append("title", newLesson.title);
+      formData.append("content", newLesson.content);
+      formData.append("order", String(newLesson.order));
+      formData.append("duration", String(newLesson.duration));
+      formData.append("course_id", selectedCourseId);
+
+      if (uploadedFileInfo) {
+        const attachmentWithFlag = {
+          ...uploadedFileInfo,
+          is_downloadable: isDownloadable,
+        };
+        formData.append("attachments", JSON.stringify([attachmentWithFlag]));
+      } else {
+        formData.append("attachments", JSON.stringify([]));
+      }
 
       const lessonRes = await axios.post(
         "http://localhost:3001/api/lessons",
-        payload,
+        formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         },
       );
@@ -283,11 +294,13 @@ const ManageLessons = () => {
 
     try {
       let uploadedFileInfo = null;
+
+      // 🔼 Upload the new file if provided
       if (file) {
         const formData = new FormData();
-        formData.append("attachments", file);
+        formData.append("file", file);
         const uploadRes = await axios.post(
-          "http://localhost:3001/api/lessons/upload",
+          `${BACKEND_URL}/api/lessons/upload`,
           formData,
           {
             headers: {
@@ -299,29 +312,38 @@ const ManageLessons = () => {
         uploadedFileInfo = uploadRes.data.data;
       }
 
-      const payload = new FormData();
-      payload.append("title", newLesson.title);
-      payload.append("content", newLesson.content);
-      payload.append("order", String(newLesson.order));
-      payload.append("duration", String(newLesson.duration));
-      payload.append(
-        "attachments",
-        JSON.stringify([
-          ...(editingLesson.attachments || []),
-          ...(uploadedFileInfo ? [uploadedFileInfo] : []),
-        ]),
-      );
+      // 🧠 Create FormData payload for lesson update
+      const formData = new FormData();
+      formData.append("title", newLesson.title);
+      formData.append("content", newLesson.content);
+      formData.append("order", String(newLesson.order));
+      formData.append("duration", String(newLesson.duration));
+      formData.append("course_id", selectedCourseId);
 
-      await axios.put(
-        `http://localhost:3001/api/lessons/${editingLesson._id}`,
-        payload,
+      // 🧩 Include attachments
+      if (uploadedFileInfo) {
+        const attachmentWithFlag = {
+          ...uploadedFileInfo,
+          is_downloadable: isDownloadable,
+        };
+        formData.append("attachments", JSON.stringify([attachmentWithFlag]));
+      } else {
+        formData.append("attachments", JSON.stringify([]));
+      }
+
+      // 🔁 Update lesson via PUT
+      const lessonRes = await axios.put(
+        `${BACKEND_URL}/api/lessons/${editingLesson._id}`,
+        formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
           },
         },
       );
 
+      // 🔄 Reset UI state
       setEditingLesson(null);
       setFile(null);
       setNewLesson({
@@ -451,6 +473,15 @@ const ManageLessons = () => {
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   disabled={isSubmitting}
                 />
+                <label className="flex items-center space-x-2 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={isDownloadable}
+                    onChange={(e) => setIsDownloadable(e.target.checked)}
+                  />
+                  <span>Mark this file as downloadable</span>
+                </label>
+
                 {file && file.type.startsWith("video/") && (
                   <video className="w-full mt-2" controls height="240">
                     <source src={URL.createObjectURL(file)} type={file.type} />
@@ -633,14 +664,25 @@ const ManageLessons = () => {
                                   Your browser does not support the video tag.
                                 </video>
                               ) : (
-                                <a
-                                  className="text-blue-600 underline"
-                                  href={fileUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {att.filename}
-                                </a>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    className="text-blue-600 underline"
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {att.filename}
+                                  </a>
+                                  {att.is_downloadable && (
+                                    <a
+                                      href={fileUrl}
+                                      download
+                                      className="text-sm text-green-600 underline"
+                                    >
+                                      Download
+                                    </a>
+                                  )}
+                                </div>
                               )}
                             </div>
                           );
@@ -683,7 +725,6 @@ const ManageLessons = () => {
                             </ul>
 
                             <div className="flex gap-3 mt-4">
-                              
                               <Button
                                 variant="destructive"
                                 onClick={() =>

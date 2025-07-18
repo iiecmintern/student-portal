@@ -66,7 +66,7 @@ const quizSchema = new mongoose.Schema({
   max_attempts: {
     type: Number,
     min: 1,
-    default: 3
+    default: 100
   },
   is_active: {
     type: Boolean,
