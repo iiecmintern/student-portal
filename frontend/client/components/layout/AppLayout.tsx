@@ -51,6 +51,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const navigation = [
     { name: "Home", href: "/", icon: BookOpen },
+
+    // Always show Courses
+    { name: "Courses", href: "/courses", icon: GraduationCap },
+
+    // My Learning (only for logged-in users)
+    ...(user
+      ? [{ name: "My Learning", href: "/my-learning", icon: User }]
+      : []),
+
+    // Instructor-only items
     ...(user?.role === "instructor"
       ? [
           {
@@ -61,12 +71,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
           { name: "Manage Users", href: "/admin", icon: UsersIcon },
         ]
-      : [
-          { name: "Courses", href: "/courses", icon: GraduationCap },
-          ...(user
-            ? [{ name: "My Learning", href: "/my-learning", icon: User }]
-            : []),
-        ]),
+      : []),
   ];
 
   return (

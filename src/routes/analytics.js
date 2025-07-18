@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const User = require("../models/User");
 const { authenticateToken } = require("../middleware/auth");
 const Course = require("../models/Course");
 const Lesson = require("../models/Lesson");
@@ -98,6 +99,38 @@ router.get("/hours", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/admin-stats", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    const totalUsers = await User.countDocuments();
+    const totalStudents = await User.countDocuments({ role: "student" });
+    const totalInstructors = await User.countDocuments({ role: "instructor" });
+    const totalCourses = await Course.countDocuments();
+
+    const revenueAgg = await Enrollment.aggregate([
+      { $match: { payment_status: "paid" } },
+      { $group: { _id: null, total: { $sum: "$payment_amount" } } }
+    ]);
+    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalUsers,
+        totalStudents,
+        totalInstructors,
+        totalCourses,
+        totalRevenue
+      }
+    });
+  } catch (error) {
+    console.error("❌ Admin overview stats error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 // @route   GET /api/analytics/dashboard
 router.get("/dashboard", authenticateToken, async (req, res) => {
@@ -256,7 +289,7 @@ router.get("/certificates", authenticateToken, async (req, res) => {
 // @route   GET /api/analytics/revenue
 router.get("/revenue", authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "instructor") {
       return res
         .status(401)
         .json({ success: false, message: "Not authorized" });

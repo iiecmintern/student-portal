@@ -22,12 +22,54 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Eye, MoreHorizontal, Search, Shield, X } from "lucide-react";
 import axios from "axios";
 
+// Chart imports
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from "recharts";
+
+const COLORS = [
+  "#6366f1", // Indigo
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#ef4444", // Red
+  "#3b82f6", // Blue
+  "#a855f7", // Purple
+  "#14b8a6", // Teal
+  "#eab308", // Yellow
+  "#f97316", // Orange
+  "#8b5cf6", // Violet
+  "#06b6d4", // Cyan
+  "#84cc16", // Lime
+  "#ec4899", // Pink
+  "#22d3ee", // Sky
+  "#4ade80", // Green
+  "#facc15", // Gold
+  "#c084fc", // Light Purple
+  "#f472b6", // Light Pink
+  "#34d399", // Mint
+  "#94a3b8", // Slate
+];
+
+
+
 interface UserRow {
   _id: string;
   full_name: string;
   email: string;
   createdAt: string;
   is_active: boolean;
+  role?: string;
   courses_count?: number;
   total_spent?: number;
 }
@@ -47,13 +89,11 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
-    setError("");
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get("http://localhost:3001/api/users", {
@@ -61,7 +101,6 @@ export default function AdminDashboard() {
       });
       setUsers(res.data.data || []);
     } catch (err: any) {
-      console.error("❌ Failed to load users", err);
       setError(err.message || "Failed to fetch users");
       setUsers([]);
     } finally {
@@ -78,13 +117,21 @@ export default function AdminDashboard() {
       });
       setCourses(res.data.data || []);
     } catch (err: any) {
-      console.error("❌ Failed to load courses", err);
       setError(err.message || "Failed to fetch courses");
       setCourses([]);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchUsers();
+      fetchCourses();
+    }
+    if (activeTab === "users") fetchUsers();
+    if (activeTab === "courses") fetchCourses();
+  }, [activeTab]);
 
   const viewUserProfile = async (id: string) => {
     try {
@@ -94,8 +141,7 @@ export default function AdminDashboard() {
       });
       setSelectedUser(res.data.data);
       setShowProfileModal(true);
-    } catch (err) {
-      console.error("❌ Error fetching profile", err);
+    } catch {
       alert("Error fetching user profile");
     }
   };
@@ -103,26 +149,107 @@ export default function AdminDashboard() {
   const deleteUser = async (id: string) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
+      const token = localStorage.getItem("token");
       await axios.delete(`http://localhost:3001/api/users/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers((old) => old.filter((u) => u._id !== id));
-    } catch (err) {
-      console.error("❌ Delete failed", err);
+      setUsers(users.filter((u) => u._id !== id));
+    } catch {
       alert("Failed to delete user");
     }
   };
 
-  useEffect(() => {
-    if (activeTab === "users") fetchUsers();
-    if (activeTab === "courses") fetchCourses();
-  }, [activeTab]);
-
   const filteredUsers = users.filter(
     (u) =>
       u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase())
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const totalRevenue = users.reduce((sum, u) => sum + (u.total_spent ?? 0), 0);
+  const totalStudents = users.filter((u) => u.role === "student").length;
+  const totalInstructors = users.filter((u) => u.role === "instructor").length;
+
+  // REPLACE ONLY THIS SECTION in your file before <ResponsiveContainer>
+  const cumulativeRevenueData = () => {
+    const revenueByDate: Record<string, number> = {};
+
+    users.forEach((u) => {
+      const date = new Date(u.createdAt).toLocaleDateString("en-GB");
+      revenueByDate[date] = (revenueByDate[date] || 0) + (u.total_spent ?? 0);
+    });
+
+    const sortedDates = Object.keys(revenueByDate).sort(
+      (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+    );
+
+    let total = 0;
+    const cumulative = sortedDates.map((date) => {
+      total += revenueByDate[date];
+      return { date, revenue: total };
+    });
+
+    return cumulative;
+  };
+
+  const userSignupsData = () => {
+    const signupByDate: Record<string, number> = {};
+
+    users.forEach((u) => {
+      const date = new Date(u.createdAt).toLocaleDateString("en-GB"); // e.g., 15/07/2025
+      signupByDate[date] = (signupByDate[date] || 0) + 1;
+    });
+
+    const sortedDates = Object.keys(signupByDate).sort(
+      (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+    );
+
+    let total = 0;
+    return sortedDates.map((date) => {
+      total += signupByDate[date];
+      return { date, users: total };
+    });
+  };
+
+  const roleDistributionData = () => {
+    const counts: Record<string, number> = {};
+
+    users.forEach((u) => {
+      const role = u.role || "unknown";
+      counts[role] = (counts[role] || 0) + 1;
+    });
+
+    return Object.entries(counts).map(([role, count]) => ({
+      role,
+      count,
+    }));
+  };
+
+  const coursePopularityData = () => {
+    return courses.map((course) => ({
+      title: course.title,
+      enrolled: course.enrolled_count || 0,
+    }));
+  };
+
+  const revenueByCourseData = () => {
+    const revenueMap: Record<string, number> = {};
+
+    users.forEach((u) => {
+      if (u.courses_count && u.total_spent) {
+        const avgRevenuePerCourse = u.total_spent / u.courses_count;
+        courses.forEach((course) => {
+          // Just a simple distribution assuming all users bought all
+          revenueMap[course.title] =
+            (revenueMap[course.title] || 0) + avgRevenuePerCourse;
+        });
+      }
+    });
+
+    return Object.entries(revenueMap).map(([title, revenue]) => ({
+      title,
+      revenue: Number(revenue.toFixed(2)),
+    }));
+  };
 
   return (
     <AppLayout>
@@ -140,7 +267,182 @@ export default function AdminDashboard() {
                 <CardTitle>Platform Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Admin metrics go here.</p>
+                {loading ? (
+                  <p>Loading metrics...</p>
+                ) : users.length || courses.length ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Total Users</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">{users.length}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Students</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">{totalStudents}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Instructors</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {totalInstructors}
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Total Courses</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">{courses.length}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Total Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            ${totalRevenue.toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle>Monthly Revenue Trend</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={cumulativeRevenueData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="revenue"
+                              stroke="#6366f1"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle>
+                          User Joined Over Time(Platform Growth)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={userSignupsData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="users"
+                              stroke="#22c55e"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                    {/* <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle>User Role Distribution</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={roleDistributionData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="role" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="count"
+                              stroke="#f59e0b"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card> */}
+
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle>Course Popularity (Enrollments)</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={coursePopularityData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="title"
+                              interval={0}
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="enrolled"
+                              stroke="#ef4444"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle>Revenue by Course (Estimated)</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={revenueByCourseData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="title"
+                              interval={0}
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="revenue"
+                              stroke="#8b5cf6"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card> */}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">No metrics available.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -158,9 +460,7 @@ export default function AdminDashboard() {
                 />
               </div>
             </div>
-
             {error && <div className="text-red-600 font-medium">{error}</div>}
-
             <Card>
               <Table>
                 <TableHeader>
@@ -192,17 +492,25 @@ export default function AdminDashboard() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{u.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{u.email}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {u.email}
+                            </p>
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(u.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Badge variant={u.is_active ? "default" : "secondary"}>
+                          {new Date(u.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={u.is_active ? "default" : "secondary"}
+                          >
                             {u.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>{u.courses_count ?? 0}</TableCell>
-                        <TableCell>${(u.total_spent ?? 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          ${(u.total_spent ?? 0).toFixed(2)}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -211,10 +519,15 @@ export default function AdminDashboard() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => viewUserProfile(u._id)}>
+                              <DropdownMenuItem
+                                onClick={() => viewUserProfile(u._id)}
+                              >
                                 <Eye className="mr-2 h-4 w-4" /> View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => deleteUser(u._id)} className="text-destructive">
+                              <DropdownMenuItem
+                                onClick={() => deleteUser(u._id)}
+                                className="text-destructive"
+                              >
                                 <Shield className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -260,9 +573,13 @@ export default function AdminDashboard() {
                       courses.map((course) => (
                         <TableRow key={course._id}>
                           <TableCell>{course.title}</TableCell>
-                          <TableCell>{course.created_by?.full_name || "Unknown"}</TableCell>
+                          <TableCell>
+                            {course.created_by?.full_name || "Unknown"}
+                          </TableCell>
                           <TableCell>{course.enrolled_count ?? 0}</TableCell>
-                          <TableCell>{new Date(course.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {new Date(course.createdAt).toLocaleDateString()}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -278,15 +595,29 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">User Profile</h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowProfileModal(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowProfileModal(false)}
+                >
                   <X />
                 </Button>
               </div>
               <div className="space-y-2">
-                <p><strong>Name:</strong> {selectedUser.full_name}</p>
-                <p><strong>Email:</strong> {selectedUser.email}</p>
-                <p><strong>Status:</strong> {selectedUser.is_active ? "Active" : "Inactive"}</p>
-                <p><strong>Joined:</strong> {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                <p>
+                  <strong>Name:</strong> {selectedUser.full_name}
+                </p>
+                <p>
+                  <strong>Email:</strong> {selectedUser.email}
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {selectedUser.is_active ? "Active" : "Inactive"}
+                </p>
+                <p>
+                  <strong>Joined:</strong>{" "}
+                  {new Date(selectedUser.createdAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>

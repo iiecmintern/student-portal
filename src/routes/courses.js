@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-
+const Enrollment = require("../models/Enrollment");
 const { authenticateToken, requireInstructor } = require("../middleware/auth");
 const Course = require("../models/Course");
 
@@ -21,9 +21,36 @@ const upload = multer({ storage });
 
 router.get("/", async (req, res) => {
   try {
-    const courses = await Course.find().select("-__v");
-    res.json({ success: true, data: courses });
+    // Get all courses with instructor populated
+    const courses = await Course.find()
+      .populate("created_by", "full_name")
+      .select("-__v");
+
+    // Fetch enrollment counts grouped by course
+    const enrollmentStats = await Enrollment.aggregate([
+      {
+        $group: {
+          _id: "$course_id",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Create a map for course_id => enrolled_count
+    const enrollmentMap = {};
+    enrollmentStats.forEach((e) => {
+      enrollmentMap[e._id.toString()] = e.count;
+    });
+
+    // Attach enrolled count to each course
+    const enrichedCourses = courses.map((course) => ({
+      ...course.toObject(),
+      enrolled_count: enrollmentMap[course._id.toString()] || 0,
+    }));
+
+    res.json({ success: true, data: enrichedCourses });
   } catch (err) {
+    console.error("❌ Failed to load courses:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
