@@ -49,30 +49,60 @@ export default function AppLayout({ children }: AppLayoutProps) {
     };
   }, []);
 
-  const navigation = [
-    { name: "Home", href: "/", icon: BookOpen },
+  const navigation = (() => {
+    if (!user) {
+      return [
+        { name: "Home", href: "/", icon: BookOpen },
+        { name: "Courses", href: "/courses", icon: GraduationCap },
+      ];
+    }
 
-    // Always show Courses
-    { name: "Courses", href: "/courses", icon: GraduationCap },
+    const base = [
+      { name: "Home", href: "/", icon: BookOpen },
+      { name: "Courses", href: "/courses", icon: GraduationCap },
+      { name: "My Learning", href: "/my-learning", icon: User },
+    ];
 
-    // My Learning (only for logged-in users)
-    ...(user
-      ? [{ name: "My Learning", href: "/my-learning", icon: User }]
-      : []),
+    if (user.role === "instructor") {
+      return [
+        ...base,
+        {
+          name: "Instructor Dashboard",
+          href: "/instructor-dashboard",
+          icon: User,
+        },
+        {
+          name: "Manage Lessons",
+          href: "/lessons",
+          icon: LayoutList,
+        },
+      ];
+    }
 
-    // Instructor-only items
-    ...(user?.role === "instructor"
-      ? [
-          {
-            name: "Instructor Dashboard",
-            href: "/instructor-dashboard",
-            icon: User,
-          },
-          { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
-          { name: "Manage Users", href: "/admin", icon: UsersIcon },
-        ]
-      : []),
-  ];
+    if (user.role === "admin") {
+      return [
+        ...base,
+        {
+          name: "Instructor Dashboard",
+          href: "/instructor-dashboard",
+          icon: User,
+        },
+        {
+          name: "Manage Lessons",
+          href: "/lessons",
+          icon: LayoutList,
+        },
+        {
+          name: "Manage Users",
+          href: "/admin",
+          icon: UsersIcon,
+        },
+      ];
+    }
+
+    // Default for student
+    return base;
+  })();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

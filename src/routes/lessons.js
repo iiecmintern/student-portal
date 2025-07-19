@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const { authenticateToken, requireInstructor } = require("../middleware/auth");
+const { authenticateToken, requireInstructor, requireAdminOrInstructor } = require("../middleware/auth");
 const Lesson = require("../models/Lesson");
 const Course = require("../models/Course");
 
@@ -33,7 +33,7 @@ const upload = multer({
 router.post(
   "/upload",
   authenticateToken,
-  requireInstructor,
+  requireAdminOrInstructor,
   upload.single("file"),
   (req, res) => {
     if (!req.file) {
@@ -90,7 +90,7 @@ router.get("/:id", async (req, res) => {
 router.post(
   "/",
   authenticateToken,
-  requireInstructor,
+  requireAdminOrInstructor,
   upload.single("file"),
   async (req, res) => {
     try {
@@ -178,7 +178,7 @@ router.post(
 router.put(
   "/:id",
   authenticateToken,
-  requireInstructor,
+  requireAdminOrInstructor,
   upload.array("attachments", 10),
   async (req, res) => {
     try {
@@ -251,7 +251,7 @@ router.put(
 router.delete(
   "/:id",
   authenticateToken,
-  requireInstructor,
+  requireAdminOrInstructor,
   async (req, res) => {
     try {
       const lesson = await Lesson.findById(req.params.id).populate("course_id");

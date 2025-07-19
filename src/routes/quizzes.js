@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateToken, requireInstructor } = require("../middleware/auth");
+const { authenticateToken, requireInstructor,requireAdminOrInstructor } = require("../middleware/auth");
 const Quiz = require("../models/Quiz");
 const Lesson = require("../models/Lesson");
 
@@ -43,7 +43,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // 🧩 CREATE quiz
-router.post("/", authenticateToken, requireInstructor, async (req, res) => {
+router.post("/", authenticateToken, requireAdminOrInstructor, async (req, res) => {
   try {
     const {
       title,
@@ -148,7 +148,7 @@ router.post("/", authenticateToken, requireInstructor, async (req, res) => {
 });
 
 // 🔁 UPDATE quiz
-router.put("/:id", authenticateToken, requireInstructor, async (req, res) => {
+router.put("/:id", authenticateToken, requireAdminOrInstructor, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id).populate("lesson_id");
     if (!quiz) {
@@ -183,7 +183,7 @@ router.put("/:id", authenticateToken, requireInstructor, async (req, res) => {
 });
 
 // ❌ DELETE quiz and unlink from lesson
-router.delete("/:id", authenticateToken, requireInstructor, async (req, res) => {
+router.delete("/:id", authenticateToken, requireAdminOrInstructor, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) {

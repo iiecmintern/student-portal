@@ -133,7 +133,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // @desc    Delete user by ID (admin or instructor)
 // @access  Private/Admin or Instructor
 // -----------------------------------------
-router.delete('/:id', authenticateToken, requireAdminOrInstructor, async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)

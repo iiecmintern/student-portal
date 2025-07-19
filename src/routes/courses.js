@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const Enrollment = require("../models/Enrollment");
-const { authenticateToken, requireInstructor } = require("../middleware/auth");
+const { authenticateToken, requireInstructor, requireAdminOrInstructor } = require("../middleware/auth");
 const Course = require("../models/Course");
 
 // ⚙️ Multer setup
@@ -56,7 +56,7 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ GET courses created by the logged-in instructor
-router.get("/my", authenticateToken, requireInstructor, async (req, res) => {
+router.get("/my", authenticateToken, requireAdminOrInstructor, async (req, res) => {
   try {
     const courses = await Course.find({ created_by: req.user._id })
       .populate("created_by", "full_name email")
@@ -94,7 +94,7 @@ router.get("/:id", async (req, res) => {
 router.post(
   "/",
   authenticateToken,
-  requireInstructor,
+  requireAdminOrInstructor,
   upload.single("thumbnail"),
   async (req, res) => {
     try {

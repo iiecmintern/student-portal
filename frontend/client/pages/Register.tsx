@@ -108,8 +108,8 @@ export default function Register() {
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="instructor">Instructor</SelectItem>
-                    <SelectItem value="parent">Parent</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
+                    {/* <SelectItem value="parent">Parent</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
