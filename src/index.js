@@ -16,7 +16,7 @@ const analyticsRoutes = require('./routes/analytics');
 const enrollmentRoutes = require('./routes/enrollments');
 const quizAttemptRoutes = require('./routes/quizAttempt');
 const progressRoutes = require('./routes/progress');
-
+const contactRoutes = require("./routes/contact");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -106,6 +106,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/quiz-attempts', quizAttemptRoutes);
 app.use('/api/progress', progressRoutes);
+app.use("/api/contact", contactRoutes);
 
 
 

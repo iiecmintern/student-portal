@@ -97,6 +97,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
           href: "/admin",
           icon: UsersIcon,
         },
+        {
+          name: "Affiliations",
+          href: "/affiliations",
+          icon: LayoutList,
+        },
+        {
+          name: "Franchise",
+          href: "/franchise",
+          icon: LayoutList,
+        },
       ];
     }
 
