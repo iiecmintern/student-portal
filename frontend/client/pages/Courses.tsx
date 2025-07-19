@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
 import {
   Select,
   SelectContent,
@@ -11,12 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  BookOpen,
-  Search,
-  Grid3X3,
-  List,
-} from "lucide-react";
+import { BookOpen, Search, Grid3X3, List } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 const categories = [
@@ -44,7 +41,9 @@ const toSlug = (text: string) => text.toLowerCase().replace(/\s+/g, "-");
 export default function Courses() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<any[]>([]);
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedLevel, setSelectedLevel] = useState("All Levels");
@@ -59,17 +58,21 @@ export default function Courses() {
         if (data.success) setCourses(data.data);
       } catch (err) {
         console.error("Failed to fetch courses", err);
+        toast.error("Failed to load courses.");
       }
     };
 
     const fetchEnrolled = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/api/enrollments/my-courses", {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const res = await fetch(
+          "http://localhost:3001/api/enrollments/my-courses",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
         const enrolledData = await res.json();
         if (enrolledData.success) {
           const ids = new Set<string>(enrolledData.data.map((c: any) => c._id));
@@ -77,6 +80,7 @@ export default function Courses() {
         }
       } catch (err) {
         console.error("Failed to fetch enrolled courses", err);
+        toast.error("Failed to load your enrollments.");
       }
     };
 
@@ -87,23 +91,27 @@ export default function Courses() {
   const handleEnroll = async (courseId: string) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:3001/api/enrollments/enroll/${courseId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `http://localhost:3001/api/enrollments/enroll/${courseId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await res.json();
       if (data.success) {
+        toast.success("Enrollment successful!");
         setEnrolledCourseIds((prev) => new Set([...prev, courseId]));
         navigate(`/course/${courseId}`);
       } else {
-        alert(data.message || "Enrollment failed");
+        toast.error(data.message || "Enrollment failed");
       }
     } catch (err) {
       console.error("Enrollment error:", err);
-      alert("Something went wrong");
+      toast.error("Something went wrong while enrolling");
     }
   };
 
@@ -126,7 +134,9 @@ export default function Courses() {
   const sortedCourses = [...filteredCourses].sort((a, b) => {
     switch (sortBy) {
       case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       case "popular":
         return (b.enrollments || 0) - (a.enrollments || 0);
       case "rating":
@@ -183,7 +193,10 @@ export default function Courses() {
 
           {/* Filters */}
           <div className="flex flex-wrap gap-4">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>

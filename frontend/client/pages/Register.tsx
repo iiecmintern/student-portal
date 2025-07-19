@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GraduationCap } from "lucide-react";
-import { useAuth } from "@/AuthContext"; // ✅ Import auth context
+import { useAuth } from "@/AuthContext";
+import { toast } from "sonner"; // ✅ Add this
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ export default function Register() {
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
-  const { login } = useAuth(); // ✅ Get login method from context
+  const { login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -44,6 +45,7 @@ export default function Register() {
     const { full_name, email, password, confirmPassword, role } = formData;
 
     if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       setErrorMsg("Passwords do not match");
       setLoading(false);
       return;
@@ -60,13 +62,13 @@ export default function Register() {
 
       if (!res.ok) throw new Error(data.message || "Registration failed");
 
-      // ✅ Use AuthContext login method
       login(data.data.user, data.data.token);
 
-      alert("Registration successful!");
+      toast.success("Registration successful!");
       navigate("/");
     } catch (err: any) {
       setErrorMsg(err.message);
+      toast.error(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -108,8 +110,6 @@ export default function Register() {
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="instructor">Instructor</SelectItem>
-                    {/* <SelectItem value="parent">Parent</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>

@@ -16,6 +16,8 @@ import {
   LayoutList,
 } from "lucide-react";
 import { useAuth } from "@/AuthContext";
+import axios from "axios";
+import { toast } from "sonner";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -71,11 +73,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           href: "/instructor-dashboard",
           icon: User,
         },
-        {
-          name: "Manage Lessons",
-          href: "/lessons",
-          icon: LayoutList,
-        },
+        { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
       ];
     }
 
@@ -87,32 +85,46 @@ export default function AppLayout({ children }: AppLayoutProps) {
           href: "/instructor-dashboard",
           icon: User,
         },
-        {
-          name: "Manage Lessons",
-          href: "/lessons",
-          icon: LayoutList,
-        },
-        {
-          name: "Manage Users",
-          href: "/admin",
-          icon: UsersIcon,
-        },
-        {
-          name: "Affiliations",
-          href: "/affiliations",
-          icon: LayoutList,
-        },
-        {
-          name: "Franchise",
-          href: "/franchise",
-          icon: LayoutList,
-        },
+        { name: "Manage Lessons", href: "/lessons", icon: LayoutList },
+        { name: "Manage Users", href: "/admin", icon: UsersIcon },
+        { name: "Affiliations", href: "/affiliations", icon: LayoutList },
+        { name: "Franchise", href: "/franchise", icon: LayoutList },
       ];
     }
 
     // Default for student
     return base;
   })();
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/notifications");
+        setNotifications(res.data.notifications || []);
+      } catch (err) {
+        console.error("Failed to load notifications", err);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3001/api/notifications/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications(notifications.filter((n) => n._id !== id));
+      toast.success("Notification deleted");
+    } catch (err) {
+      toast.error("Failed to delete");
+      console.error(err);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -155,12 +167,73 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <div className="relative">{/* Optional search */}</div>
             </div>
 
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
-                3
-              </span>
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-4 w-4" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary text-[10px] font-medium text-white flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </Button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border rounded shadow z-50 max-h-96 overflow-y-auto">
+                  <div className="p-4 border-b font-semibold">
+                    Notifications
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground">
+                      No notifications available.
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n._id}
+                        className="p-3 border-b space-y-1 text-sm"
+                      >
+                        <div className="font-medium">{n.title}</div>
+                        <div className="text-muted-foreground">{n.message}</div>
+                        {n.createdBy?.full_name && (
+                          <div className="text-xs text-muted-foreground italic">
+                            Posted by: {n.createdBy.full_name}
+                          </div>
+                        )}
+
+                        {(user?.role === "admin" ||
+                          user?.role === "instructor") && (
+                          <button
+                            onClick={() => handleDeleteNotification(n._id)}
+                            className="text-xs text-red-600 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {/* Manage Notifications Button */}
+                  {(user?.role === "admin" || user?.role === "instructor") && (
+                    <div className="p-3 border-t text-right">
+                      <Link
+                        to="/notifications"
+                        className="text-sm text-primary font-medium hover:underline"
+                        onClick={() => setShowNotifications(false)}
+                      >
+                        Manage Notifications →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {user ? (
               <div className="relative" ref={dropdownRef}>

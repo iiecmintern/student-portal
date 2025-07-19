@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import QuizAttempt from "@/components/QuizAttempt";
+import { toast } from "sonner";
 
 const BACKEND_URL = "http://localhost:3001";
 
@@ -38,6 +39,7 @@ export default function LessonViewer() {
       } catch (err) {
         console.error("Error fetching lesson:", err);
         setError("Failed to load lesson");
+        toast.error("❌ Failed to load lesson.");
       } finally {
         setLoading(false);
       }
@@ -57,6 +59,7 @@ export default function LessonViewer() {
         } catch (err) {
           console.error("Error fetching quiz:", err);
           setQuiz(null);
+          toast.error("❌ Failed to load quiz.");
         }
       } else if (lesson?.quiz?.questions?.length > 0) {
         setQuiz(lesson.quiz);
@@ -84,6 +87,7 @@ export default function LessonViewer() {
         setAttempt(res.data.data);
       } catch {
         setAttempt(null);
+        toast.error("❌ Failed to load quiz attempt.");
       } finally {
         setAttemptLoading(false);
       }
@@ -107,6 +111,7 @@ export default function LessonViewer() {
         setDone(res.data?.data?.completed || false);
       } catch {
         setDone(false);
+        toast.error("❌ Failed to fetch progress.");
       }
     };
     fetchProgress();
@@ -126,13 +131,13 @@ export default function LessonViewer() {
       setDone(true);
     } catch (err) {
       console.error("Error marking as done:", err);
-      alert("❌ Failed to mark as done.");
+      toast.error("❌ Failed to mark lesson as done.");
     }
   };
 
   const handleNextLesson = async () => {
     if (quiz && (!attempt || !attempt.passed)) {
-      alert("⚠️ You must pass the quiz to proceed.");
+      toast.warning("⚠️ You must pass the quiz to proceed.");
       return;
     }
     try {
@@ -141,10 +146,10 @@ export default function LessonViewer() {
       if (nextLesson?._id) {
         navigate(`/lesson/${nextLesson._id}`);
       } else {
-        alert("No next lesson available.");
+        toast.warning("No next lesson available.");
       }
     } catch {
-      alert("No next lesson available.");
+      toast.error("Failed to fetch next lesson.");
     }
   };
 
@@ -155,10 +160,10 @@ export default function LessonViewer() {
       if (prevLesson?._id) {
         navigate(`/lesson/${prevLesson._id}`);
       } else {
-        alert("No previous lesson available.");
+        toast.warning("No previous lesson available.");
       }
     } catch {
-      alert("No previous lesson available.");
+      toast.error("Failed to fetch previous lesson.");
     }
   };
 

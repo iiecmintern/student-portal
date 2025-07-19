@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/AuthContext"; // ✅ Import the auth context
+import { toast } from "sonner";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -41,11 +42,12 @@ export default function Login() {
       // ✅ Use AuthContext login
       login(data.data.user, data.data.token);
 
-      alert("Login successful!");
+      toast.success("Login successful!");
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
       setErrorMsg(err.message);
+      toast.error(`Login failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

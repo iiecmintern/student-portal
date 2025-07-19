@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { toast } from "sonner";
 
 interface Course {
   _id: string;
@@ -121,11 +122,11 @@ export default function InstructorDashboard() {
 
     const data = await res.json();
     if (data.success) {
-      alert(isEditMode ? "Course updated!" : "Course created!");
+      toast.success(isEditMode ? "✅ Course updated!" : "🎉 Course created!");
       resetForm();
       fetchMyCourses();
     } else {
-      alert(data.message || "Operation failed");
+      toast.error(data.message || "❌ Operation failed");
     }
   };
 
@@ -146,7 +147,11 @@ export default function InstructorDashboard() {
       totalQuizzes: course.curriculum?.total_quizzes?.toString() || "0",
     });
     setThumbnail(null);
-    setThumbnailPreview(course.thumbnail_url ? `http://localhost:3001${course.thumbnail_url}` : null);
+    setThumbnailPreview(
+      course.thumbnail_url
+        ? `http://localhost:3001${course.thumbnail_url}`
+        : null,
+    );
   };
 
   const handleDeleteCourse = async (id: string) => {
@@ -158,10 +163,10 @@ export default function InstructorDashboard() {
     });
     const data = await res.json();
     if (data.success) {
-      alert("Course deleted");
+      toast.success("🗑️ Course deleted successfully");
       fetchMyCourses();
     } else {
-      alert(data.message || "Deletion failed");
+      toast.error(data.message || "❌ Failed to delete course");
     }
   };
 
@@ -199,35 +204,90 @@ export default function InstructorDashboard() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{isEditMode ? "Edit Course" : "Create New Course"}</DialogTitle>
+                <DialogTitle>
+                  {isEditMode ? "Edit Course" : "Create New Course"}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <Label>Course Title</Label>
-                <Input value={newCourse.title} onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })} />
+                <Input
+                  value={newCourse.title}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, title: e.target.value })
+                  }
+                />
                 <Label>Description</Label>
-                <Textarea value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })} />
+                <Textarea
+                  value={newCourse.description}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, description: e.target.value })
+                  }
+                />
                 <Label>Overview</Label>
-                <Textarea value={newCourse.overview} onChange={(e) => setNewCourse({ ...newCourse, overview: e.target.value })} />
+                <Textarea
+                  value={newCourse.overview}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, overview: e.target.value })
+                  }
+                />
                 <Label>Curriculum Topics (comma-separated)</Label>
-                <Input value={newCourse.curriculumTopics} onChange={(e) => setNewCourse({ ...newCourse, curriculumTopics: e.target.value })} />
+                <Input
+                  value={newCourse.curriculumTopics}
+                  onChange={(e) =>
+                    setNewCourse({
+                      ...newCourse,
+                      curriculumTopics: e.target.value,
+                    })
+                  }
+                />
                 <Label>Total Modules</Label>
-                <Input type="number" value={newCourse.totalModules} onChange={(e) => setNewCourse({ ...newCourse, totalModules: e.target.value })} />
+                <Input
+                  type="number"
+                  value={newCourse.totalModules}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, totalModules: e.target.value })
+                  }
+                />
                 <Label>Total Quizzes</Label>
-                <Input type="number" value={newCourse.totalQuizzes} onChange={(e) => setNewCourse({ ...newCourse, totalQuizzes: e.target.value })} />
+                <Input
+                  type="number"
+                  value={newCourse.totalQuizzes}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, totalQuizzes: e.target.value })
+                  }
+                />
                 <Label>Category</Label>
-                <Select value={newCourse.category} onValueChange={(val) => setNewCourse({ ...newCourse, category: val })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <Select
+                  value={newCourse.category}
+                  onValueChange={(val) =>
+                    setNewCourse({ ...newCourse, category: val })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="web-development">Web Development</SelectItem>
+                    <SelectItem value="web-development">
+                      Web Development
+                    </SelectItem>
                     <SelectItem value="data-science">Data Science</SelectItem>
                     <SelectItem value="design">Design</SelectItem>
                     <SelectItem value="design">Programming Language</SelectItem>
-                    <SelectItem value="design">Research & Development</SelectItem>
+                    <SelectItem value="design">
+                      Research & Development
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Label>Difficulty</Label>
-                <Select value={newCourse.difficulty} onValueChange={(val) => setNewCourse({ ...newCourse, difficulty: val })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <Select
+                  value={newCourse.difficulty}
+                  onValueChange={(val) =>
+                    setNewCourse({ ...newCourse, difficulty: val })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="beginner">Beginner</SelectItem>
                     <SelectItem value="intermediate">Intermediate</SelectItem>
@@ -235,15 +295,40 @@ export default function InstructorDashboard() {
                   </SelectContent>
                 </Select>
                 <Label>Tags</Label>
-                <Input value={newCourse.tags} onChange={(e) => setNewCourse({ ...newCourse, tags: e.target.value })} />
+                <Input
+                  value={newCourse.tags}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, tags: e.target.value })
+                  }
+                />
                 <Label>Price</Label>
-                <Input type="number" value={newCourse.price} onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })} />
+                <Input
+                  type="number"
+                  value={newCourse.price}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, price: e.target.value })
+                  }
+                />
                 <Label>Thumbnail</Label>
-                <Input ref={fileInputRef} type="file" onChange={handleThumbnailChange} />
-                {thumbnailPreview && <img src={thumbnailPreview} alt="preview" className="h-24 mt-2" />}
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleThumbnailChange}
+                />
+                {thumbnailPreview && (
+                  <img
+                    src={thumbnailPreview}
+                    alt="preview"
+                    className="h-24 mt-2"
+                  />
+                )}
                 <div className="flex justify-end gap-3">
-                  <Button variant="outline" onClick={resetForm}>Cancel</Button>
-                  <Button onClick={handleCreateOrUpdateCourse}>{isEditMode ? "Update" : "Create"}</Button>
+                  <Button variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateOrUpdateCourse}>
+                    {isEditMode ? "Update" : "Create"}
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -257,17 +342,35 @@ export default function InstructorDashboard() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {courses.map((course) => (
-              <div key={course._id} className="border rounded shadow-sm p-4 bg-white">
+              <div
+                key={course._id}
+                className="border rounded shadow-sm p-4 bg-white"
+              >
                 {course.thumbnail_url && (
-                  <img src={`http://localhost:3001${course.thumbnail_url}`} className="w-full h-40 object-cover mb-2" />
+                  <img
+                    src={`http://localhost:3001${course.thumbnail_url}`}
+                    className="w-full h-40 object-cover mb-2"
+                  />
                 )}
                 <h2 className="font-bold text-lg">{course.title}</h2>
                 <p className="text-sm text-black">{course.description}</p>
                 <p className="text-sm mt-1">${course.price}</p>
-                <p className="text-xs text-gray-500">{course.category} • {course.difficulty}</p>
+                <p className="text-xs text-gray-500">
+                  {course.category} • {course.difficulty}
+                </p>
                 <div className="flex gap-2 mt-3">
-                  <Button size="sm" onClick={() => openEditDialog(course)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDeleteCourse(course._id)}><Trash className="w-4 h-4 mr-1" />Delete</Button>
+                  <Button size="sm" onClick={() => openEditDialog(course)}>
+                    <Pencil className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteCourse(course._id)}
+                  >
+                    <Trash className="w-4 h-4 mr-1" />
+                    Delete
+                  </Button>
                 </div>
               </div>
             ))}

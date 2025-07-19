@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AppLayout from "@/components/layout/AppLayout";
+import { toast } from "sonner";
 
 const BACKEND_URL = "http://localhost:3001"; // or your deployed backend
 
@@ -88,10 +89,10 @@ const ManageLessons = () => {
           lesson._id === lessonId ? { ...lesson, quiz: null } : lesson,
         ),
       );
-      alert("Quiz deleted successfully");
+      toast.success("🗑️ Quiz deleted successfully");
     } catch (error) {
       console.error("Delete quiz error:", error);
-      alert("Failed to delete quiz");
+      toast.error("❌ Failed to delete quiz");
     }
   };
 
@@ -117,6 +118,7 @@ const ManageLessons = () => {
       setCourses(res.data.data || []);
     } catch (err) {
       console.error("Error fetching courses:", err);
+      toast.error("❌ Failed to load your courses");
     } finally {
       setLoadingCourses(false);
     }
@@ -150,6 +152,7 @@ const ManageLessons = () => {
       setNewLesson((prev) => ({ ...prev, order: nextOrder }));
     } catch (err) {
       console.error("Error fetching lessons:", err);
+      toast.error("❌ Failed to load lessons for the selected course");
     } finally {
       setLoadingLessons(false);
     }
@@ -171,7 +174,7 @@ const ManageLessons = () => {
 
   const handleAddLesson = async () => {
     if (!newLesson.title.trim() || !newLesson.content.trim()) {
-      alert("Please fill all fields");
+      toast.error("⚠️ Please fill all lesson fields before submitting.");
       return;
     }
 
@@ -281,8 +284,9 @@ const ManageLessons = () => {
       });
 
       await fetchLessons(selectedCourseId);
+      toast.success("✅ Lesson added successfully!");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error adding lesson");
+      toast.error(err?.response?.data?.message || "❌ Error adding lesson");
     } finally {
       setIsSubmitting(false);
     }
@@ -353,22 +357,24 @@ const ManageLessons = () => {
         duration: 10,
       });
       await fetchLessons(selectedCourseId);
+      toast.success("📝 Lesson updated successfully!");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error updating lesson");
+      toast.error(err?.response?.data?.message || "❌ Error updating lesson");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm("Are you sure you want to delete this lesson?")) return;
+    if (!window.confirm("Are you sure you want to delete this lesson?")) return;
     try {
       await axios.delete(`http://localhost:3001/api/lessons/${lessonId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchLessons(selectedCourseId);
+      toast.success("🗑️ Lesson deleted successfully!");
     } catch (err) {
-      alert("Error deleting lesson");
+      toast.error("❌ Error deleting lesson");
     }
   };
 

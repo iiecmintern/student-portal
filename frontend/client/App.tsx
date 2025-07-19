@@ -35,6 +35,7 @@ import Enterprise from "./pages/Enterprise";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
 import Community from "./pages/Community";
+import NotificationPanel from "./pages/NotificationPanel";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/notifications" element={<NotificationPanel />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

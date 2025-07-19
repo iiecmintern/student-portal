@@ -21,6 +21,8 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 import { Eye, MoreHorizontal, Search, Shield, X } from "lucide-react";
 import axios from "axios";
+import { toast } from "sonner";
+
 
 // Chart imports
 import {
@@ -102,6 +104,7 @@ export default function AdminDashboard() {
       setUsers(res.data.data || []);
     } catch (err: any) {
       setError(err.message || "Failed to fetch users");
+      toast.error("❌ Failed to fetch users");
       setUsers([]);
     } finally {
       setLoading(false);
@@ -118,6 +121,7 @@ export default function AdminDashboard() {
       setCourses(res.data.data || []);
     } catch (err: any) {
       setError(err.message || "Failed to fetch courses");
+      toast.error("❌ Failed to fetch courses");
       setCourses([]);
     } finally {
       setLoading(false);
@@ -142,7 +146,7 @@ export default function AdminDashboard() {
       setSelectedUser(res.data.data);
       setShowProfileModal(true);
     } catch {
-      alert("Error fetching user profile");
+      toast.error("❌ Error fetching user profile");
     }
   };
 
@@ -154,8 +158,9 @@ export default function AdminDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(users.filter((u) => u._id !== id));
+      toast.success("🗑️ User deleted successfully");
     } catch {
-      alert("Failed to delete user");
+      toast.error("❌ Failed to delete user");
     }
   };
 

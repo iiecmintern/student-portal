@@ -17,6 +17,9 @@ const enrollmentRoutes = require('./routes/enrollments');
 const quizAttemptRoutes = require('./routes/quizAttempt');
 const progressRoutes = require('./routes/progress');
 const contactRoutes = require("./routes/contact");
+const affiliationRoutes = require("./routes/affiliations");
+const franchiseRoutes = require("./routes/franchise");
+const notificationRoutes = require("./routes/notifications");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,8 +27,7 @@ const PORT = process.env.PORT || 3001;
 // ✅ Connect to MongoDB
 connectDB();
 
-// ✅ Security middleware
-// ✅ Security middleware with CSP allowing iframe from localhost:8080
+// ✅ Security middleware with CSP allowing iframe from React
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -34,13 +36,12 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
-      frameSrc: ["'self'", "http://localhost:8080"], // ✅ Allow embedding from React app
-      frameAncestors: ["'self'", "http://localhost:8080"], // ✅ Fix iframe error
+      frameSrc: ["'self'", "http://localhost:8080"],
+      frameAncestors: ["'self'", "http://localhost:8080"],
       objectSrc: ["'none'"]
     }
   },
 }));
-
 
 // ✅ CORS configuration
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080'];
@@ -67,22 +68,26 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ Serve all uploaded files from src/uploads (including lessons)
-const serveUploads = express.static(path.join(__dirname, 'uploads'));
-// ✅ Serve general uploaded files (e.g. thumbnails in ../uploads)
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-}, express.static(path.join(__dirname, '..', 'uploads')));
-
-// ✅ Serve lesson uploads from src/uploads/lessons
+// ✅ Serve lesson uploads
 app.use('/uploads/lessons', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'uploads', 'lessons')));
 
+// ✅ Serve general uploads (legacy)
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '..', 'uploads')));
+
+// ✅ Serve affiliation logos from /logo
+app.use('/logo', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'logo')));
 
 // ✅ Health check endpoint
 app.get('/health', (req, res) => {
@@ -107,8 +112,9 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/quiz-attempts', quizAttemptRoutes);
 app.use('/api/progress', progressRoutes);
 app.use("/api/contact", contactRoutes);
-
-
+app.use('/api/affiliations', affiliationRoutes);
+app.use("/api/franchise", franchiseRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ✅ Error handling middleware
 app.use((err, req, res, next) => {
