@@ -6,8 +6,15 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "start:prod": "set NODE_ENV=production && node src/index.js",
     "build": "echo 'No build step required'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:atlas": "node migrate-to-atlas.js",
+    "migrate:backup": "node migrate-to-atlas.js && echo 'Backup created at backup-data.json'",
+    "test:atlas": "node test-atlas-connection.js",
+    "test:atlas:prod": "set NODE_ENV=production && node test-atlas-connection.js",
+    "test:both": "node test-both-atlas.js",
+    "test:email": "node test-email.js"
   },
   "keywords": [
     "lms",

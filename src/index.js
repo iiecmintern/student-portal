@@ -75,7 +75,7 @@ app.use('/uploads/lessons', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads', 'lessons')));
 
-// ✅ Serve general uploads (legacy)
+// ✅ Serve general profile uploads (legacy)
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
