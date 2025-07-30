@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
+import { URLS } from '@/config/urls';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/layout/AppLayout";
@@ -15,7 +16,7 @@ export default function NotificationPanel() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/notifications");
+      const res = await axios.get(URLS.API.NOTIFICATIONS.LIST);
       setNotifications(res.data.notifications || []);
     } catch (err) {
       toast.error("Failed to load notifications");
@@ -31,7 +32,7 @@ export default function NotificationPanel() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:3001/api/notifications", form, {
+      await axios.post(URLS.API.NOTIFICATIONS.LIST, form, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Notification posted");

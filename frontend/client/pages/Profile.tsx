@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/AuthContext";
+import { URLS } from '@/config/urls';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ export default function Profile() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        "http://localhost:3001/api/auth/change-password",
+        URLS.API.AUTH.CHANGE_PASSWORD,
         {
           method: "PUT",
           headers: {
@@ -95,7 +96,7 @@ export default function Profile() {
     setProfileMessage("");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3001/api/users/profile", {
+      const res = await fetch(URLS.API.USERS.PROFILE, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +134,7 @@ export default function Profile() {
         try {
           const token = localStorage.getItem("token");
           const res = await fetch(
-            "http://localhost:3001/api/enrollments/my-courses",
+            URLS.API.ENROLLMENTS.MY_COURSES,
             {
               headers: { Authorization: `Bearer ${token}` },
             },

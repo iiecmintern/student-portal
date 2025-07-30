@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { URLS } from '@/config/urls';
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, XCircle } from "lucide-react";
 import axios from "axios";
 
-const BACKEND_URL = "http://localhost:3001";
+import { BACKEND_URL } from '@/config/urls';
 
 interface QuizAttemptProps {
   quiz?: {

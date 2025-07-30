@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3001/api/courses", {
+      const res = await axios.get(URLS.API.COURSES.LIST, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCourses(res.data.data || []);

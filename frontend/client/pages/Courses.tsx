@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,7 @@ export default function Courses() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/courses");
+        const res = await fetch(URLS.API.COURSES.LIST);
         const data = await res.json();
         if (data.success) setCourses(data.data);
       } catch (err) {
@@ -66,7 +67,7 @@ export default function Courses() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          "http://localhost:3001/api/enrollments/my-courses",
+          URLS.API.ENROLLMENTS.MY_COURSES,
           {
             headers: {
               Authorization: `Bearer ${token}`,

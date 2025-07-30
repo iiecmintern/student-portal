@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
@@ -102,7 +103,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/notifications");
+        const res = await axios.get(URLS.API.NOTIFICATIONS.LIST);
         setNotifications(res.data.notifications || []);
       } catch (err) {
         console.error("Failed to load notifications", err);

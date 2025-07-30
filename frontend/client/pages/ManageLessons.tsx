@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AppLayout from "@/components/layout/AppLayout";
 import { toast } from "sonner";
 
-const BACKEND_URL = "http://localhost:3001"; // or your deployed backend
+import { BACKEND_URL } from '@/config/urls'; // or your deployed backend
 
 interface Course {
   _id: string;
@@ -112,7 +113,7 @@ const ManageLessons = () => {
   const fetchCourses = async () => {
     setLoadingCourses(true);
     try {
-      const res = await axios.get("http://localhost:3001/api/courses/my", {
+      const res = await axios.get(URLS.API.COURSES.MY_COURSES, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCourses(res.data.data || []);
@@ -186,7 +187,7 @@ const ManageLessons = () => {
         const uploadFormData = new FormData();
         uploadFormData.append("file", file);
         const uploadRes = await axios.post(
-          "http://localhost:3001/api/lessons/upload",
+          URLS.API.LESSONS.UPLOAD,
           uploadFormData,
           {
             headers: {
@@ -246,7 +247,7 @@ const ManageLessons = () => {
           return;
         }
 
-        await axios.post("http://localhost:3001/api/quizzes", quizPayload, {
+        await axios.post(URLS.API.QUIZZES.CREATE, quizPayload, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

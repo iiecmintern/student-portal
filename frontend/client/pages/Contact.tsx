@@ -1,5 +1,6 @@
 // src/pages/Contact.tsx
 import AppLayout from "@/components/layout/AppLayout";
+import { URLS } from '@/config/urls';
 import { useState } from "react";
 
 export default function Contact() {
@@ -24,7 +25,7 @@ export default function Contact() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/contact", {
+      const res = await fetch(URLS.API.CONTACT.SEND, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Card, CardContent } from "@/components/ui/card";
 import {
   FileText,
@@ -15,7 +16,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import QuizAttempt from "@/components/QuizAttempt";
 import { toast } from "sonner";
 
-const BACKEND_URL = "http://localhost:3001";
+import { BACKEND_URL } from '@/config/urls';
 
 export default function LessonViewer() {
   const { id } = useParams();

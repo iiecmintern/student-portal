@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,7 +69,7 @@ export default function InstructorDashboard() {
   const fetchMyCourses = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:3001/api/courses/my", {
+    const res = await fetch(URLS.API.COURSES.MY_COURSES, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -111,7 +112,7 @@ export default function InstructorDashboard() {
     const token = localStorage.getItem("token");
     const url = isEditMode
       ? `http://localhost:3001/api/courses/${editingCourse?._id}`
-      : "http://localhost:3001/api/courses";
+      : URLS.API.COURSES.LIST;
     const method = isEditMode ? "PUT" : "POST";
 
     const res = await fetch(url, {

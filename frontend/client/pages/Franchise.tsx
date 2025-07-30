@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AppLayout from "@/components/layout/AppLayout";
+import { URLS } from '@/config/urls';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export default function Franchise() {
   useEffect(() => {
     const fetchFranchise = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/franchise");
+        const res = await axios.get(URLS.API.FRANCHISE.LIST);
         const data = res.data.franchise;
 
         setIntro(data.intro || "");
@@ -70,7 +71,7 @@ export default function Franchise() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:3001/api/franchise", payload, {
+      await axios.post(URLS.API.FRANCHISE.LIST, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -14,7 +14,9 @@
     "test:atlas": "node test-atlas-connection.js",
     "test:atlas:prod": "set NODE_ENV=production && node test-atlas-connection.js",
     "test:both": "node test-both-atlas.js",
-    "test:email": "node test-email.js"
+    "test:email": "node test-email.js",
+    "deploy:prepare": "node scripts/deploy.js",
+    "urls:replace": "node scripts/replace-urls.js"
   },
   "keywords": [
     "lms",

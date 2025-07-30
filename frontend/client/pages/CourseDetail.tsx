@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+import { URLS } from '@/config/urls';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
-const BACKEND_URL = "http://localhost:3001";
+import { BACKEND_URL } from '@/config/urls';
 
 export default function CourseDetail() {
   const { id } = useParams();

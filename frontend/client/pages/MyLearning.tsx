@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
+import { URLS } from '@/config/urls';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -23,7 +24,7 @@ export default function MyLearning() {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
-        const res = await axios.get("http://localhost:3001/api/enrollments/my-courses", { headers });
+        const res = await axios.get(URLS.API.ENROLLMENTS.MY_COURSES, { headers });
         const courseList = res.data.data;
         setCourses(courseList);
 
@@ -51,7 +52,7 @@ export default function MyLearning() {
         setProgressMap(progressData);
         setCertificateCount(completed);
 
-        const hoursRes = await axios.get("http://localhost:3001/api/analytics/hours", { headers });
+        const hoursRes = await axios.get(URLS.API.ANALYTICS.HOURS, { headers });
         const totalMinutes = hoursRes.data?.data?.totalDurationMinutes || 0;
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;

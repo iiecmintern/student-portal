@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AppLayout from "@/components/layout/AppLayout";
+import { URLS } from '@/config/urls';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +41,7 @@ export default function Affiliations() {
   const fetchAffiliations = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3001/api/affiliations", {
+      const res = await axios.get(URLS.API.AFFILIATIONS.LIST, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAffiliations(res.data.data);
@@ -86,7 +87,7 @@ export default function Affiliations() {
         });
         toast.success("Affiliation updated successfully");
       } else {
-        await axios.post("http://localhost:3001/api/affiliations", fd, {
+        await axios.post(URLS.API.AFFILIATIONS.LIST, fd, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
