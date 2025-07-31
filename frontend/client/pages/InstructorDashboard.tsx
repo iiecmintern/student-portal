@@ -111,7 +111,7 @@ export default function InstructorDashboard() {
 
     const token = localStorage.getItem("token");
     const url = isEditMode
-      ? `http://localhost:3001/api/courses/${editingCourse?._id}`
+              ? URLS.API.COURSES.UPDATE(editingCourse?._id)
       : URLS.API.COURSES.LIST;
     const method = isEditMode ? "PUT" : "POST";
 
@@ -150,7 +150,7 @@ export default function InstructorDashboard() {
     setThumbnail(null);
     setThumbnailPreview(
       course.thumbnail_url
-        ? `http://localhost:3001${course.thumbnail_url}`
+        ? URLS.FILES.THUMBNAIL(course.thumbnail_url)
         : null,
     );
   };
@@ -158,7 +158,7 @@ export default function InstructorDashboard() {
   const handleDeleteCourse = async (id: string) => {
     if (!confirm("Are you sure you want to delete this course?")) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(`http://localhost:3001/api/courses/${id}`, {
+    const res = await fetch(URLS.API.COURSES.UPDATE(id), {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -349,7 +349,7 @@ export default function InstructorDashboard() {
               >
                 {course.thumbnail_url && (
                   <img
-                    src={`http://localhost:3001${course.thumbnail_url}`}
+                    src={URLS.FILES.THUMBNAIL(course.thumbnail_url)}
                     className="w-full h-40 object-cover mb-2"
                   />
                 )}

@@ -129,7 +129,7 @@ const ManageLessons = () => {
     setLoadingLessons(true);
     try {
       const res = await axios.get(
-        `http://localhost:3001/api/lessons/course/${courseId}`,
+        URLS.API.LESSONS.COURSE_LESSONS(courseId),
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -369,7 +369,7 @@ const ManageLessons = () => {
   const handleDeleteLesson = async (lessonId: string) => {
     if (!window.confirm("Are you sure you want to delete this lesson?")) return;
     try {
-      await axios.delete(`http://localhost:3001/api/lessons/${lessonId}`, {
+      await axios.delete(URLS.API.LESSONS.DELETE(lessonId), {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchLessons(selectedCourseId);
@@ -662,7 +662,7 @@ const ManageLessons = () => {
                         </div>
 
                         {lesson.attachments?.map((att, i) => {
-                          const fileUrl = `http://localhost:3001${att.url}`;
+                          const fileUrl = URLS.FILES.UPLOAD(att.url);
                           return (
                             <div key={i} className="text-sm mt-1">
                               {att.type.startsWith("video/") ? (

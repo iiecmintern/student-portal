@@ -79,7 +79,7 @@ export default function Affiliations() {
       setLoading(true);
 
       if (editingId) {
-        await axios.put(`http://localhost:3001/api/affiliations/${editingId}`, fd, {
+        await axios.put(URLS.API.AFFILIATIONS.UPDATE(editingId), fd, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
@@ -111,7 +111,7 @@ export default function Affiliations() {
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/api/affiliations/${id}`, {
+      await axios.delete(URLS.API.AFFILIATIONS.DELETE(id), {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Affiliation deleted");
@@ -227,7 +227,7 @@ export default function Affiliations() {
                   className="border rounded-lg p-4 shadow hover:shadow-md transition"
                 >
                   <img
-                    src={`http://localhost:3001/logo/${aff.logo.filename}`}
+                    src={URLS.FILES.LOGO(aff.logo.filename)}
                     alt={aff.logo.original_name}
                     className="w-24 h-24 object-contain mb-4"
                   />

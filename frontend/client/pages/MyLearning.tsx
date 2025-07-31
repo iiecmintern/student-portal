@@ -31,7 +31,7 @@ export default function MyLearning() {
         const progressResponses = await Promise.all(
           courseList.map((course: any) =>
             axios
-              .get(`http://localhost:3001/api/analytics/progress/${course._id}`, { headers })
+              .get(URLS.API.ANALYTICS.PROGRESS(course._id), { headers })
               .then((res) => ({
                 courseId: course._id,
                 progress: res.data?.data?.progress || 0,
@@ -164,7 +164,7 @@ export default function MyLearning() {
                       <img
                         src={
                           course.thumbnail_url
-                            ? `http://localhost:3001${course.thumbnail_url}`
+                            ? URLS.FILES.THUMBNAIL(course.thumbnail_url)
                             : "https://via.placeholder.com/120x80"
                         }
                         alt={course.title}

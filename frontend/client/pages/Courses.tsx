@@ -93,7 +93,7 @@ export default function Courses() {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        `http://localhost:3001/api/enrollments/enroll/${courseId}`,
+        URLS.API.COURSES.ENROLL(courseId),
         {
           method: "POST",
           headers: {
@@ -252,7 +252,7 @@ export default function Courses() {
               className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow"
             >
               <img
-                src={`http://localhost:3001${course.thumbnail_url}`}
+                src={URLS.FILES.THUMBNAIL(course.thumbnail_url)}
                 alt={course.title}
                 className="w-full h-48 object-cover"
               />

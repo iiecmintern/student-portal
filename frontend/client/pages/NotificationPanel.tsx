@@ -48,7 +48,7 @@ export default function NotificationPanel() {
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/api/notifications/${id}`, {
+      await axios.delete(URLS.API.NOTIFICATIONS.DELETE(id), {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Notification deleted");

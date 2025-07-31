@@ -230,7 +230,7 @@ export default function Index() {
               >
                 <div className="relative">
                   <img
-                    src={`http://localhost:3001${course.thumbnail_url}`}
+                    src={URLS.FILES.THUMBNAIL(course.thumbnail_url)}
                     alt={course.title}
                     className="w-full h-48 object-cover transition-transform group-hover:scale-105"
                   />

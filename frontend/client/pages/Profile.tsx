@@ -155,7 +155,7 @@ export default function Profile() {
         const results = await Promise.all(
           courses.map((course: any) =>
             fetch(
-              `http://localhost:3001/api/analytics/progress/${course._id}`,
+              URLS.API.ANALYTICS.PROGRESS(course._id),
               {
                 headers,
               },
@@ -341,7 +341,7 @@ export default function Profile() {
                           <img
                             src={
                               course.thumbnail_url
-                                ? `http://localhost:3001${course.thumbnail_url}`
+                                ? URLS.FILES.THUMBNAIL(course.thumbnail_url)
                                 : "https://via.placeholder.com/120x80"
                             }
                             alt={course.title}
@@ -391,7 +391,7 @@ export default function Profile() {
                             <img
                               src={
                                 course.thumbnail_url
-                                  ? `http://localhost:3001${course.thumbnail_url}`
+                                  ? URLS.FILES.THUMBNAIL(course.thumbnail_url)
                                   : "https://via.placeholder.com/120x80"
                               }
                               alt={course.title}
