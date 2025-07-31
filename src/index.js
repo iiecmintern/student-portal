@@ -37,14 +37,8 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:"],
-        frameSrc: [
-          "'self'",
-          process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080',
-        ],
-        frameAncestors: [
-          "'self'",
-          process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080',
-        ],
+        frameSrc: ["'self'", process.env.FRONTEND_URL],
+        frameAncestors: ["'self'", process.env.FRONTEND_URL],
         objectSrc: ["'none'"],
       },
     },
@@ -54,9 +48,8 @@ app.use(
 // ✅ CORS configuration
 const allowedOrigins = [
   "http://localhost:3000",
-  process.env.FRONTEND_URL || 'http://localhost:8080',
-  "https://eduflowstudentportal.netlify.app",
   process.env.FRONTEND_URL,
+  "https://eduflowstudentportal.netlify.app",
 ].filter(Boolean);
 
 console.log("🔧 CORS Configuration:", {
@@ -117,10 +110,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(
   "/uploads/lessons",
   (req, res, next) => {
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
-    );
+    res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL);
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },
@@ -131,10 +121,7 @@ app.use(
 app.use(
   "/uploads",
   (req, res, next) => {
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
-    );
+    res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL);
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },
@@ -145,10 +132,7 @@ app.use(
 app.use(
   "/logo",
   (req, res, next) => {
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
-    );
+    res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL);
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },

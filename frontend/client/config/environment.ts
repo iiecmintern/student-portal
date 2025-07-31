@@ -5,7 +5,7 @@ export const ENV = {
   IS_PROD: import.meta.env.PROD,
 
   // API Configuration
-  API_URL: import.meta.env.VITE_API_URL || "http://localhost:3001",
+  API_URL: import.meta.env.VITE_API_URL || "",
   API_TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT || "30000"),
 
   // App Configuration
