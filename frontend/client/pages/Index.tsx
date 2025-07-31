@@ -66,7 +66,7 @@ export default function Index() {
   // useEffect(() => {
   //   const fetchFeatured = async () => {
   //     try {
-  //       const res = await fetch("http://localhost:3001/api/courses/featured");
+  //       const res = await fetch(URLS.API.COURSES.UPDATE('featured'));
   //       const data = await res.json();
   //       if (data.success) setFeaturedCourses(data.data);
   //     } catch (err) {

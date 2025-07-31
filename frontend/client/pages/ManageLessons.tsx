@@ -217,7 +217,7 @@ const ManageLessons = () => {
       }
 
       const lessonRes = await axios.post(
-        "http://localhost:3001/api/lessons",
+        URLS.API.LESSONS.UPLOAD,
         formData,
         {
           headers: {
