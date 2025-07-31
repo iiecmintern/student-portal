@@ -1,15 +1,20 @@
 [build]
-  command = "npm run build:client"
-  functions = "netlify/functions"
+  base = "frontend"
+  command = "npm run build"
   publish = "dist/spa"
 
+[build.environment]
+  NODE_VERSION = "18"
 
-[functions]
-  external_node_modules = ["express"]
-  node_bundler = "esbuild"
-  
 [[redirects]]
-  force = true
-  from = "/api/*"
+  from = "/*"
+  to = "/index.html"
   status = 200
-  to = "/.netlify/functions/api/:splat"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
