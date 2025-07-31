@@ -36,15 +36,15 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
-      frameSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:8080'],
-      frameAncestors: ["'self'", process.env.FRONTEND_URL || 'http://localhost:8080'],
+      frameSrc: ["'self'", process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'],
+      frameAncestors: ["'self'", process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'],
       objectSrc: ["'none'"]
     }
   },
 }));
 
 // ✅ CORS configuration
-const allowedOrigins = ['http://localhost:3000', process.env.FRONTEND_URL || 'http://localhost:8080'];
+const allowedOrigins = ['http://localhost:3000', process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -70,21 +70,21 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ✅ Serve lesson uploads
 app.use('/uploads/lessons', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:8080');
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'uploads', 'lessons')));
 
 // ✅ Serve general profile uploads (legacy)
 app.use('/uploads', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:8080');
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, '..', 'uploads')));
 
 // ✅ Serve affiliation logos from /logo
 app.use('/logo', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:8080');
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'logo')));

@@ -16,6 +16,7 @@
     "test:both": "node test-both-atlas.js",
     "test:email": "node test-email.js",
     "deploy:prepare": "node scripts/deploy.js",
+    "deploy:netlify-render": "node scripts/deploy-netlify-render.js",
     "urls:replace": "node scripts/replace-urls.js"
   },
   "keywords": [
