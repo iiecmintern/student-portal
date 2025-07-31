@@ -39,9 +39,7 @@ app.use(
         imgSrc: ["'self'", "data:"],
         frameSrc: [
           "'self'",
-          process.env.FRONTEND_URL ||
-            process.env.FRONTEND_URL ||
-            "http://localhost:8080",
+          process.env.FRONTEND_URL || "http://localhost:8080",
         ],
         frameAncestors: [
           "'self'",
@@ -66,18 +64,38 @@ console.log("🔧 CORS Configuration:", {
   NODE_ENV: process.env.NODE_ENV,
 });
 
+// Log all environment variables for debugging
+console.log("🔧 Environment Variables:", {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  MONGODB_URI_PROD: process.env.MONGODB_URI_PROD ? "Set" : "Not set",
+});
+
 app.use(
   cors({
     origin: function (origin, callback) {
       console.log("🌐 CORS Request from:", origin);
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log("❌ CORS Blocked:", origin);
-        callback(new Error("Not allowed by CORS"));
+
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        console.log("✅ Allowing request with no origin");
+        return callback(null, true);
       }
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        console.log("✅ Allowing request from:", origin);
+        return callback(null, true);
+      }
+
+      // Block the request
+      console.log("❌ CORS Blocked:", origin);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
