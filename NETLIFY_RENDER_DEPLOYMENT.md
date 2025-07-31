@@ -33,7 +33,7 @@ Add these environment variables in Render:
 ```env
 NODE_ENV=production
 PORT=10000
-MONGODB_URI_PROD=mongodb+srv://iiecmintern2:mKaI1T3F5K3I95uu@cluster0.sidgh14.mongodb.net/global_lms
+MONGODB_URI_PROD=mongodb+srv://aman2450:Am%40n3101@mern.suqdd.mongodb.net/global_lms
 JWT_SECRET=acbfa4ffe8fa75af9eeb0564598052f230f3a74fdcaa83ede6187c44a4b9fb1f
 JWT_EXPIRES_IN=7d
 MAIL_USER=amancloud0201@gmail.com
@@ -75,7 +75,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 Add these environment variables in Netlify:
 
 ```env
-VITE_API_URL=https://YOUR_RENDER_BACKEND_URL.onrender.com
+VITE_API_URL=https://global-lms-backend.onrender.com
 VITE_API_TIMEOUT=30000
 VITE_APP_NAME=Global LMS
 VITE_APP_VERSION=1.0.0
