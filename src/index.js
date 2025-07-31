@@ -39,11 +39,11 @@ app.use(
         imgSrc: ["'self'", "data:"],
         frameSrc: [
           "'self'",
-          process.env.FRONTEND_URL || "http://localhost:8080",
+          process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080',
         ],
         frameAncestors: [
           "'self'",
-          process.env.FRONTEND_URL || "http://localhost:8080",
+          process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080',
         ],
         objectSrc: ["'none'"],
       },
@@ -54,7 +54,7 @@ app.use(
 // ✅ CORS configuration
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://localhost:8080",
+  process.env.FRONTEND_URL || 'http://localhost:8080',
   "https://eduflowstudentportal.netlify.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
@@ -119,7 +119,7 @@ app.use(
   (req, res, next) => {
     res.setHeader(
       "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || "http://localhost:8080"
+      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
     );
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
@@ -133,7 +133,7 @@ app.use(
   (req, res, next) => {
     res.setHeader(
       "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || "http://localhost:8080"
+      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
     );
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
@@ -147,7 +147,7 @@ app.use(
   (req, res, next) => {
     res.setHeader(
       "Access-Control-Allow-Origin",
-      process.env.FRONTEND_URL || "http://localhost:8080"
+      process.env.FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:8080'
     );
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();

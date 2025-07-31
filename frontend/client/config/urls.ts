@@ -28,7 +28,10 @@ export const URLS = {
       CHANGE_PASSWORD: buildUrl("/api/auth/change-password"),
     },
     USERS: {
+      LIST: buildUrl("/api/users"),
       PROFILE: buildUrl("/api/users/profile"),
+      DETAIL: (id: string) => buildUrl(`/api/users/${id}`),
+      DELETE: (id: string) => buildUrl(`/api/users/${id}`),
     },
     COURSES: {
       LIST: buildUrl("/api/courses"),

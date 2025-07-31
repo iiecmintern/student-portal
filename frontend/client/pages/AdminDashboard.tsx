@@ -99,7 +99,7 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3001/api/users", {
+      const res = await axios.get(URLS.API.USERS.LIST, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(res.data.data || []);
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
   const viewUserProfile = async (id: string) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:3001/api/users/${id}`, {
+      const res = await axios.get(URLS.API.USERS.DETAIL(id), {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSelectedUser(res.data.data);
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/api/users/${id}`, {
+      await axios.delete(URLS.API.USERS.DELETE(id), {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(users.filter((u) => u._id !== id));
