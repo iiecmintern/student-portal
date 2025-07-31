@@ -55,6 +55,7 @@ app.use(
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:8080",
+  "https://eduflowstudentportal.netlify.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -91,6 +92,7 @@ app.use(
 
       // Block the request
       console.log("❌ CORS Blocked:", origin);
+      console.log("❌ Allowed origins:", allowedOrigins);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
