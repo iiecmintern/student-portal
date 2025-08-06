@@ -107,7 +107,7 @@ const ManageLessons = () => {
     window.location.href = `/edit-quiz/${quizId}`; // or use navigate()
   };
 
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
@@ -182,12 +182,14 @@ const ManageLessons = () => {
       return;
     }
 
-    // Validate file if present
-    if (file) {
-      const validation = validateFile(file);
-      if (!validation.isValid) {
-        toast.error(validation.error);
-        return;
+    // Validate all files if present
+    if (files.length > 0) {
+      for (const file of files) {
+        const validation = validateFile(file);
+        if (!validation.isValid) {
+          toast.error(`${file.name}: ${validation.error}`);
+          return;
+        }
       }
     }
 
@@ -195,16 +197,27 @@ const ManageLessons = () => {
     setUploadProgress(0);
 
     try {
-      let uploadedFileInfo = null;
-      if (file) {
+      let uploadedFilesInfo = [];
+      if (files.length > 0) {
         try {
-          const uploadRes = await uploadFileWithProgress(
-            URLS.API.LESSONS.UPLOAD,
-            file,
-            token,
-            (progress) => setUploadProgress(progress),
-          );
-          uploadedFileInfo = uploadRes.data;
+          // Upload all files with progress tracking
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const uploadRes = await uploadFileWithProgress(
+              URLS.API.LESSONS.UPLOAD,
+              file,
+              token,
+              (progress) => {
+                // Calculate overall progress across all files
+                const overallProgress = ((i + progress / 100) / files.length) * 100;
+                setUploadProgress(Math.round(overallProgress));
+              },
+            );
+            uploadedFilesInfo.push({
+              ...uploadRes.data,
+              is_downloadable: isDownloadable,
+            });
+          }
         } catch (uploadError) {
           console.error("Upload error:", uploadError);
           toast.error("❌ File upload failed. Please try again.");
@@ -221,12 +234,8 @@ const ManageLessons = () => {
       formData.append("duration", String(newLesson.duration));
       formData.append("course_id", selectedCourseId);
 
-      if (uploadedFileInfo) {
-        const attachmentWithFlag = {
-          ...uploadedFileInfo,
-          is_downloadable: isDownloadable,
-        };
-        formData.append("attachments", JSON.stringify([attachmentWithFlag]));
+      if (uploadedFilesInfo.length > 0) {
+        formData.append("attachments", JSON.stringify(uploadedFilesInfo));
       } else {
         formData.append("attachments", JSON.stringify([]));
       }
@@ -273,7 +282,7 @@ const ManageLessons = () => {
         order: newLesson.order + 1,
         duration: 10,
       });
-      setFile(null);
+      setFiles([]);
       setUploadProgress(0);
       setQuizEnabled(false);
       setQuizData({
@@ -310,23 +319,29 @@ const ManageLessons = () => {
     setIsSubmitting(true);
 
     try {
-      let uploadedFileInfo = null;
+      let uploadedFilesInfo = [];
 
-      // 🔼 Upload the new file if provided
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const uploadRes = await axios.post(
-          `${BACKEND_URL}/api/lessons/upload`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
+      // 🔼 Upload all new files if provided
+      if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const formData = new FormData();
+          formData.append("file", file);
+          const uploadRes = await axios.post(
+            `${BACKEND_URL}/api/lessons/upload`,
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data",
+              },
             },
-          },
-        );
-        uploadedFileInfo = uploadRes.data.data;
+          );
+          uploadedFilesInfo.push({
+            ...uploadRes.data.data,
+            is_downloadable: isDownloadable,
+          });
+        }
       }
 
       // 🧠 Create FormData payload for lesson update
@@ -338,12 +353,8 @@ const ManageLessons = () => {
       formData.append("course_id", selectedCourseId);
 
       // 🧩 Include attachments
-      if (uploadedFileInfo) {
-        const attachmentWithFlag = {
-          ...uploadedFileInfo,
-          is_downloadable: isDownloadable,
-        };
-        formData.append("attachments", JSON.stringify([attachmentWithFlag]));
+      if (uploadedFilesInfo.length > 0) {
+        formData.append("attachments", JSON.stringify(uploadedFilesInfo));
       } else {
         formData.append("attachments", JSON.stringify([]));
       }
@@ -362,7 +373,7 @@ const ManageLessons = () => {
 
       // 🔄 Reset UI state
       setEditingLesson(null);
-      setFile(null);
+      setFiles([]);
       setUploadProgress(0);
       setNewLesson({
         title: "",
@@ -408,7 +419,7 @@ const ManageLessons = () => {
         order: editingLesson.order,
         duration: editingLesson.duration,
       });
-      setFile(null);
+      setFiles([]);
     }
   }, [editingLesson]);
 
@@ -491,25 +502,51 @@ const ManageLessons = () => {
                   <Input
                     type="file"
                     accept="video/*,application/pdf"
+                    multiple
                     onChange={(e) => {
-                      const selectedFile = e.target.files?.[0];
-                      if (selectedFile) {
-                        const validation = validateFile(selectedFile);
+                      const selectedFiles = Array.from(e.target.files || []);
+                      const validFiles: File[] = [];
+                      
+                      for (const file of selectedFiles) {
+                        const validation = validateFile(file);
                         if (!validation.isValid) {
-                          toast.error(validation.error);
-                          e.target.value = "";
-                          return;
+                          toast.error(`${file.name}: ${validation.error}`);
+                          continue;
                         }
+                        validFiles.push(file);
                       }
-                      setFile(selectedFile || null);
+                      
+                      if (validFiles.length > 0) {
+                        setFiles(prev => [...prev, ...validFiles]);
+                        e.target.value = ""; // Clear input for next selection
+                      }
                     }}
                     disabled={isSubmitting}
                   />
-                  {file && (
-                    <div className="text-sm text-muted-foreground">
-                      <p>File: {file.name}</p>
-                      <p>Size: {formatFileSize(file.size)}</p>
-                      <p>Type: {file.type}</p>
+                  
+                  {/* Display selected files */}
+                  {files.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Selected Files ({files.length}):</p>
+                      {files.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Size: {formatFileSize(file.size)} | Type: {file.type}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFiles(prev => prev.filter((_, i) => i !== index))}
+                            className="ml-2"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   )}
                   {uploadProgress > 0 && uploadProgress < 100 && (
@@ -533,12 +570,16 @@ const ManageLessons = () => {
                   </label>
                 </div>
 
-                {file && file.type.startsWith("video/") && (
-                  <video className="w-full mt-2" controls height="240">
-                    <source src={URL.createObjectURL(file)} type={file.type} />
-                    Your browser does not support the video tag.
-                  </video>
-                )}
+                {/* Video previews for selected video files */}
+                {files.filter(file => file.type.startsWith("video/")).map((file, index) => (
+                  <div key={index} className="mt-2">
+                    <p className="text-sm font-medium mb-1">{file.name}</p>
+                    <video className="w-full" controls height="240">
+                      <source src={URL.createObjectURL(file)} type={file.type} />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                ))}
 
                 {/* ✅ Add Quiz Option */}
                 <label className="flex items-center space-x-2">
