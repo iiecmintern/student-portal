@@ -86,9 +86,13 @@ export default function LessonViewer() {
           },
         );
         setAttempt(res.data.data);
-      } catch {
+      } catch (err) {
+        console.error("Error fetching quiz attempt:", err);
         setAttempt(null);
-        toast.error("❌ Failed to load quiz attempt.");
+        // Don't show error toast for 404 (no attempt found)
+        if (err?.response?.status !== 404) {
+          toast.error("❌ Failed to load quiz attempt.");
+        }
       } finally {
         setAttemptLoading(false);
       }

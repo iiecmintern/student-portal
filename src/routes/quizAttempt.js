@@ -9,11 +9,11 @@ const { authenticateToken } = require("../middleware/auth");
 router.get("/:lessonId/latest", authenticateToken, async (req, res) => {
   try {
     const attempt = await QuizAttempt.findOne({
-      user: req.user.id,
+      user: req.user._id,
       lesson: req.params.lessonId,
     }).sort({ createdAt: -1 });
 
-    if (!attempt) return res.status(404).json({ message: "No attempt found" });
+    if (!attempt) return res.status(404).json({ success: false, message: "No attempt found" });
 
     res.json({ success: true, data: attempt });
   } catch (err) {
@@ -33,7 +33,7 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 
     const attemptCount = await QuizAttempt.countDocuments({
-      user: req.user.id,
+      user: req.user._id,
       quiz: quizId,
     });
 
@@ -66,7 +66,7 @@ router.post("/", authenticateToken, async (req, res) => {
     }));
 
     const attempt = await QuizAttempt.create({
-      user: req.user.id,
+      user: req.user._id,
       quiz: quizId,
       lesson: lessonId,
       answers: structuredAnswers,

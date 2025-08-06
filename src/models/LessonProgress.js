@@ -5,6 +5,7 @@ const lessonProgressSchema = new mongoose.Schema({
   course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   lesson: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson', required: true },
   completed: { type: Boolean, default: false },
+  completedAt: { type: Date, default: null },
 
   // 🆕 Add duration field to store completed lesson time in minutes
   duration: { type: Number, default: 0 }, // in minutes
