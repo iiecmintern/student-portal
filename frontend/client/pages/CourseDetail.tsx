@@ -126,7 +126,7 @@ export default function CourseDetail() {
                         src={
                           instructor.avatar_url?.startsWith("data:image")
                             ? instructor.avatar_url
-                            : `${BACKEND_URL}${instructor.avatar_url}`
+                            : URLS.FILES.UPLOAD(instructor.avatar_url)
                         }
                       />
                       <AvatarFallback>
@@ -154,7 +154,7 @@ export default function CourseDetail() {
                   <img
                     src={
                       courseData.thumbnail_url
-                        ? `${BACKEND_URL}${courseData.thumbnail_url}`
+                        ? URLS.FILES.THUMBNAIL(courseData.thumbnail_url)
                         : "/default-thumb.jpg"
                     }
                     alt={courseData.title}
