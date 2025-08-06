@@ -45,7 +45,7 @@ const uploadToS3 = async (file, folder = "uploads") => {
     Key: `${folder}/${Date.now()}-${file.originalname}`,
     Body: file.buffer,
     ContentType: file.mimetype,
-    ACL: "public-read",
+    // ACL: "public-read", // Temporarily disabled due to bucket settings
   };
 
   try {
