@@ -194,7 +194,7 @@ export default function LessonViewer() {
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Attachments</h2>
             {lesson.attachments.map((file: any) => {
-              const fileUrl = `${BACKEND_URL}/uploads/lessons/${file.filename}`;
+              const fileUrl = file.url || URLS.FILES.UPLOAD(file.url);
               const isVideo = file.type.startsWith("video/");
               const isPDF = file.type === "application/pdf";
 

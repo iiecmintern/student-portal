@@ -206,7 +206,7 @@ router.put(
       const uploadedAttachments = req.files ? req.files.map((file) => ({
         filename: file.filename,
         original_name: file.originalname,
-        url: file.url || `/uploads/lessons/${file.filename}`,
+        url: file.url, // Use the URL set by upload middleware
         size: file.size,
         type: file.mimetype,
       })) : [];
