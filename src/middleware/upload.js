@@ -62,7 +62,7 @@ const uploadLessonAttachments = multer({
 const uploadAvatar = createMulterInstance("avatar");
 
 // Middleware for lesson content (videos, PDFs)
-const uploadLessonContent = createMulterInstance("content");
+const uploadLessonContent = createMulterInstance("file");
 
 // Process uploaded files (convert local paths to S3 URLs in production)
 const processUploadedFile = async (req, res, next) => {
