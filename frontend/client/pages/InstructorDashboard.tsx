@@ -163,7 +163,7 @@ export default function InstructorDashboard() {
   const handleDeleteCourse = async (id: string) => {
     if (!confirm("Are you sure you want to delete this course?")) return;
     const token = localStorage.getItem("token");
-    const res = await fetch(URLS.API.COURSES.UPDATE(id), {
+    const res = await fetch(URLS.API.COURSES.DELETE(id), {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });

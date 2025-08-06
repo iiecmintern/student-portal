@@ -36,6 +36,9 @@ export const URLS = {
     COURSES: {
       LIST: buildUrl("/api/courses"),
       MY_COURSES: buildUrl("/api/courses/my"),
+      CREATE: buildUrl("/api/courses"),
+      UPDATE: (id: string) => buildUrl(`/api/courses/${id}`),
+      DELETE: (id: string) => buildUrl(`/api/courses/${id}`),
       ENROLL: (courseId: string) =>
         buildUrl(`/api/enrollments/enroll/${courseId}`),
     },
@@ -43,6 +46,9 @@ export const URLS = {
       MY_COURSES: buildUrl("/api/enrollments/my-courses"),
     },
     LESSONS: {
+      LIST: buildUrl("/api/lessons"),
+      CREATE: buildUrl("/api/lessons"),
+      UPDATE: (id: string) => buildUrl(`/api/lessons/${id}`),
       UPLOAD: buildUrl("/api/lessons/upload"),
       COURSE_LESSONS: (courseId: string) =>
         buildUrl(`/api/lessons/course/${courseId}`),

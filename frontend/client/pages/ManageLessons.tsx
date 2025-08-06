@@ -231,7 +231,7 @@ const ManageLessons = () => {
         formData.append("attachments", JSON.stringify([]));
       }
 
-      const lessonRes = await axios.post(URLS.API.LESSONS.UPLOAD, formData, {
+      const lessonRes = await axios.post(URLS.API.LESSONS.CREATE, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",

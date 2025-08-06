@@ -203,13 +203,13 @@ router.put(
         });
       }
 
-      const uploadedAttachments = req.files.map((file) => ({
+      const uploadedAttachments = req.files ? req.files.map((file) => ({
         filename: file.filename,
         original_name: file.originalname,
-        url: `/uploads/lessons/${file.filename}`,
+        url: file.url || `/uploads/lessons/${file.filename}`,
         size: file.size,
         type: file.mimetype,
-      }));
+      })) : [];
 
       const updatedLesson = await Lesson.findByIdAndUpdate(
         req.params.id,
