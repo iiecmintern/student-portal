@@ -1,5 +1,8 @@
 node_modules
+<<<<<<< HEAD
 .env
+=======
+>>>>>>> 144a2e01fbf49bf6b656b9f5f2e911cd41ac4668
 .env.local
 .env.development.local
 .env.test.local
