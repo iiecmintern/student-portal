@@ -7,12 +7,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("token");
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+      }
+    };
+
+    // Load user on mount
+    loadUser();
+
+    // Listen for storage changes (when user data is updated)
+    const handleStorageChange = () => {
+      loadUser();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', handleStorageChange); // For same-tab updates
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = (userData: any, jwt: string) => {

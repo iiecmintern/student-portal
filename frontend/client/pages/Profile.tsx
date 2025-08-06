@@ -42,14 +42,13 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditedData((prev: any) => ({
-        ...prev,
-        avatar_url: reader.result,
-      }));
-    };
-    reader.readAsDataURL(file);
+    // Store the actual file for upload
+    setEditedData((prev: any) => ({
+      ...prev,
+      avatar_file: file,
+      // Keep a preview URL for display
+      avatar_url: URL.createObjectURL(file),
+    }));
   };
 
   const handlePasswordChange = async () => {
@@ -96,26 +95,41 @@ export default function Profile() {
     setProfileMessage("");
     try {
       const token = localStorage.getItem("token");
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("full_name", editedData.full_name || "");
+      formData.append("bio", editedData.profile?.bio || "");
+      
+      // Handle avatar file upload
+      if (editedData.avatar_file) {
+        formData.append("avatar", editedData.avatar_file);
+      }
+      
       const res = await fetch(URLS.API.USERS.PROFILE, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          // Don't set Content-Type for FormData - browser will set it with boundary
         },
-        body: JSON.stringify({
-          full_name: editedData.full_name,
-          avatar_url: editedData.avatar_url,
-          bio: editedData.profile?.bio || "",
-        }),
+        body: formData,
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to update profile");
 
+      // Update local user data with the response
+      if (data.data) {
+        localStorage.setItem("user", JSON.stringify(data.data));
+        // Update the auth context without reloading
+        window.dispatchEvent(new Event('storage'));
+      }
+
       setIsEditing(false);
       setProfileMessage("Profile updated successfully!");
     } catch (error: any) {
-      setProfileMessage(error.message);
+      console.error("Profile update error:", error);
+      setProfileMessage(error.message || "Failed to update profile");
     }
   };
 
