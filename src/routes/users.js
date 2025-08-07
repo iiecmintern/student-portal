@@ -21,7 +21,7 @@ const {
 // -----------------------------------------
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user._id).select("-password");
     if (!user)
       return res
         .status(404)
@@ -131,7 +131,7 @@ router.get(
 // -----------------------------------------
 router.get("/:id", authenticateToken, async (req, res) => {
   try {
-    const isSelf = req.user.id === req.params.id;
+    const isSelf = req.user._id.toString() === req.params.id;
     const isAdmin = req.user.role === "admin";
     const isInstructor = req.user.role === "instructor";
 

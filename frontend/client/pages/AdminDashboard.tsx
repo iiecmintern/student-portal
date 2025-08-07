@@ -473,6 +473,7 @@ export default function AdminDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Courses</TableHead>
@@ -483,13 +484,13 @@ export default function AdminDashboard() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">
+                      <TableCell colSpan={7} className="text-center">
                         Loading users...
                       </TableCell>
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">
+                      <TableCell colSpan={7} className="text-center">
                         No users found.
                       </TableCell>
                     </TableRow>
@@ -502,7 +503,15 @@ export default function AdminDashboard() {
                             <p className="text-sm text-muted-foreground">
                               {u.email}
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              {u.role || 'student'}
+                            </p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {u.role || 'student'}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {new Date(u.createdAt).toLocaleDateString()}
@@ -618,8 +627,22 @@ export default function AdminDashboard() {
                   <strong>Email:</strong> {selectedUser.email}
                 </p>
                 <p>
+                  <strong>Role:</strong>{" "}
+                  <Badge variant="outline" className="capitalize">
+                    {selectedUser.role || 'student'}
+                  </Badge>
+                </p>
+                <p>
                   <strong>Status:</strong>{" "}
-                  {selectedUser.is_active ? "Active" : "Inactive"}
+                  <Badge variant={selectedUser.is_active ? "default" : "secondary"}>
+                    {selectedUser.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </p>
+                <p>
+                  <strong>Courses Enrolled:</strong> {selectedUser.courses_count || 0}
+                </p>
+                <p>
+                  <strong>Total Spent:</strong> {formatINR(selectedUser.total_spent || 0)}
                 </p>
                 <p>
                   <strong>Joined:</strong>{" "}
