@@ -278,8 +278,8 @@ export default function InstructorDashboard() {
                     </SelectItem>
                     <SelectItem value="data-science">Data Science</SelectItem>
                     <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="design">Programming Language</SelectItem>
-                    <SelectItem value="design">
+                    <SelectItem value="programming-language">Programming Language</SelectItem>
+                    <SelectItem value="research-development">
                       Research & Development
                     </SelectItem>
                   </SelectContent>

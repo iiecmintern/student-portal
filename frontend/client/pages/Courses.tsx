@@ -22,6 +22,8 @@ const categories = [
   "Web Development",
   "Data Science",
   "Design",
+  "Programming Language",
+  "Research & Development",
   "Marketing",
   "Technology",
   "Business",
