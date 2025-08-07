@@ -55,9 +55,7 @@ courseSchema.virtual("url").get(function () {
 });
 
 courseSchema.virtual("formattedPrice").get(function () {
-  // Convert USD to INR (approximate rate)
-  const inrPrice = this.price * 83;
-  return `₹${inrPrice.toLocaleString('en-IN')}`;
+  return `₹${this.price.toLocaleString('en-IN')}`;
 });
 
 courseSchema.virtual("durationHours").get(function () {
