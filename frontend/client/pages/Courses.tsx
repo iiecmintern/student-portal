@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { BookOpen, Search, Grid3X3, List } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { formatPrice } from "@/lib/currency";
 
 const categories = [
   "All Categories",
@@ -270,7 +271,7 @@ export default function Courses() {
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-primary font-semibold text-lg">
-                    ${course.price}
+                    {formatPrice(course.price)}
                   </span>
                   {enrolledCourseIds.has(course._id) ? (
                     <Button

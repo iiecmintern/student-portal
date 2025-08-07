@@ -24,6 +24,7 @@ import {
 import { Plus, Pencil, Trash } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/currency";
 
 interface Course {
   _id: string;
@@ -367,7 +368,7 @@ export default function InstructorDashboard() {
                 )}
                 <h2 className="font-bold text-lg">{course.title}</h2>
                 <p className="text-sm text-black">{course.description}</p>
-                <p className="text-sm mt-1">${course.price}</p>
+                <p className="text-sm mt-1">{formatPrice(course.price)}</p>
                 <p className="text-xs text-gray-500">
                   {course.category} • {course.difficulty}
                 </p>

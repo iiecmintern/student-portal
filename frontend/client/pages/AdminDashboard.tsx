@@ -23,6 +23,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Eye, MoreHorizontal, Search, Shield, X } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { formatINR } from "@/lib/currency";
 
 
 // Chart imports
@@ -318,7 +319,7 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-bold">
-                            ${totalRevenue.toFixed(2)}
+                            {formatINR(totalRevenue)}
                           </p>
                         </CardContent>
                       </Card>
@@ -515,7 +516,7 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>{u.courses_count ?? 0}</TableCell>
                         <TableCell>
-                          ${(u.total_spent ?? 0).toFixed(2)}
+                          {formatINR(u.total_spent ?? 0)}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>

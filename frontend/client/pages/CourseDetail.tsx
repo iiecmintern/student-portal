@@ -25,6 +25,7 @@ import {
   Award,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { formatPrice } from "@/lib/currency";
 
 import { BACKEND_URL } from '@/config/urls';
 
@@ -168,7 +169,7 @@ export default function CourseDetail() {
                 </div>
 
                 <CardContent className="p-6 space-y-4 text-center">
-                  <div className="text-3xl font-bold text-primary">${courseData.price}</div>
+                  <div className="text-3xl font-bold text-primary">{formatPrice(courseData.price)}</div>
 
                   <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg" disabled>
                     <BookOpen className="mr-2 h-5 w-5" />

@@ -5,6 +5,7 @@ import { URLS } from '@/config/urls';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppLayout from "@/components/layout/AppLayout";
+import { formatPrice } from "@/lib/currency";
 import {
   BookOpen,
   Users,
@@ -278,11 +279,11 @@ export default function Index() {
                     <div className="flex items-center justify-between">
                       <div className="space-x-2">
                         <span className="text-2xl font-bold text-primary">
-                          ${course.price}
+                          {formatPrice(course.price)}
                         </span>
                         {course.originalPrice && (
                           <span className="text-sm text-muted-foreground line-through">
-                            ${course.originalPrice}
+                            {formatPrice(course.originalPrice)}
                           </span>
                         )}
                       </div>
