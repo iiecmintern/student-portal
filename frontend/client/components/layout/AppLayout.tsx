@@ -103,10 +103,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await axios.get(URLS.API.NOTIFICATIONS.LIST);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          // Don't fetch notifications if user is not logged in
+          return;
+        }
+        
+        const res = await axios.get(URLS.API.NOTIFICATIONS.LIST, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setNotifications(res.data.notifications || []);
       } catch (err) {
         console.error("Failed to load notifications", err);
+        // Don't show error toast for notifications - it's not critical
       }
     };
 

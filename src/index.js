@@ -52,6 +52,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL,
   "https://eduflowstudentportal.netlify.app",
+  "https://global-lms-frontend.netlify.app",
 ].filter(Boolean);
 
 console.log("🔧 CORS Configuration:", {

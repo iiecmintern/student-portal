@@ -28,7 +28,7 @@ router.post("/", authenticateToken, async (req, res) => {
     let notification = await Notification.create({
       title,
       message,
-      createdBy: req.user.id,
+      createdBy: req.user._id,
     });
 
     // Populate createdBy for immediate display in frontend
@@ -59,7 +59,7 @@ router.patch("/:id/read", authenticateToken, async (req, res) => {
   try {
     const notification = await Notification.findByIdAndUpdate(
       req.params.id,
-      { $addToSet: { readBy: req.user.id } }, // ensures uniqueness
+      { $addToSet: { readBy: req.user._id } }, // ensures uniqueness
       { new: true }
     ).populate("createdBy", "full_name role");
 

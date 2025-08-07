@@ -16,7 +16,15 @@ export default function NotificationPanel() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(URLS.API.NOTIFICATIONS.LIST);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to view notifications");
+        return;
+      }
+      
+      const res = await axios.get(URLS.API.NOTIFICATIONS.LIST, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setNotifications(res.data.notifications || []);
     } catch (err) {
       toast.error("Failed to load notifications");
