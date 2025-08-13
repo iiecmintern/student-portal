@@ -12,6 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import AppLayout from "@/components/layout/AppLayout";
 import { MapPin, Calendar, Camera, Edit, Save, X, Shield } from "lucide-react";
+import { toast } from "sonner";
+import { UploadProgress, UploadProgressData } from "@/components/UploadProgress";
+import { 
+  validateFile as validateFileNew, 
+  formatFileSize as formatFileSizeNew,
+  uploadFileWithProgress as uploadFileWithProgressNew,
+  getFileTypeConfig,
+  createFormDataWithProgress
+} from "@/lib/upload-utils";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -31,6 +40,8 @@ export default function Profile() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressData | null>(null);
+  const [uploadCanceller, setUploadCanceller] = useState<(() => void) | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -41,6 +52,15 @@ export default function Profile() {
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file
+    const config = getFileTypeConfig(file);
+    const validation = validateFileNew(file, config);
+    if (validation) {
+      toast.error(validation);
+      e.target.value = "";
+      return;
+    }
 
     // Store the actual file for upload
     setEditedData((prev: any) => ({
@@ -96,37 +116,107 @@ export default function Profile() {
     try {
       const token = localStorage.getItem("token");
       
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append("full_name", editedData.full_name || "");
-      formData.append("bio", editedData.profile?.bio || "");
-      
-      // Handle avatar file upload
+      // Handle avatar file upload with progress if present
       if (editedData.avatar_file) {
-        formData.append("avatar", editedData.avatar_file);
+        // Initialize upload progress
+        const initialProgress: UploadProgressData = {
+          percentage: 0,
+          uploadedBytes: 0,
+          totalBytes: editedData.avatar_file.size,
+          speed: 0,
+          timeRemaining: 0,
+          status: 'uploading',
+          fileName: editedData.avatar_file.name,
+        };
+        setUploadProgress(initialProgress);
+
+        // Create form data for avatar upload
+        const formData = createFormDataWithProgress(editedData.avatar_file, {
+          full_name: editedData.full_name || "",
+          bio: editedData.profile?.bio || "",
+        });
+
+        let cancelUpload: (() => void) | undefined;
+        const cancelPromise = new Promise<never>((_, reject) => {
+          cancelUpload = () => reject(new Error('Upload cancelled'));
+        });
+
+        setUploadCanceller(cancelUpload!);
+
+        try {
+          const res = await Promise.race([
+            uploadFileWithProgressNew(
+              URLS.API.USERS.PROFILE,
+              formData,
+              (progress) => {
+                setUploadProgress(progress);
+              },
+              cancelUpload
+            ),
+            cancelPromise
+          ]);
+
+          // Mark as complete
+          setUploadProgress(prev => prev ? { ...prev, status: 'complete' } : null);
+
+          if (res.success) {
+            // Update local user data with the response
+            if (res.data) {
+              localStorage.setItem("user", JSON.stringify(res.data));
+              // Update the auth context without reloading
+              window.dispatchEvent(new Event('storage'));
+            }
+
+            setIsEditing(false);
+            setProfileMessage("Profile updated successfully!");
+          } else {
+            throw new Error(res.message || "Failed to update profile");
+          }
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          
+          // Mark as error
+          setUploadProgress(prev => prev ? { 
+            ...prev, 
+            status: 'error', 
+            error: uploadError instanceof Error ? uploadError.message : 'Upload failed'
+          } : null);
+
+          if (uploadError instanceof Error && uploadError.message === 'Upload cancelled') {
+            setProfileMessage("Upload cancelled");
+          } else {
+            setProfileMessage("Upload failed. Please try again.");
+          }
+          return;
+        }
+      } else {
+        // No avatar file, proceed with regular form submission
+        const formData = new FormData();
+        formData.append("full_name", editedData.full_name || "");
+        formData.append("bio", editedData.profile?.bio || "");
+        
+        const res = await fetch(URLS.API.USERS.PROFILE, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type for FormData - browser will set it with boundary
+          },
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to update profile");
+
+        // Update local user data with the response
+        if (data.data) {
+          localStorage.setItem("user", JSON.stringify(data.data));
+          // Update the auth context without reloading
+          window.dispatchEvent(new Event('storage'));
+        }
+
+        setIsEditing(false);
+        setProfileMessage("Profile updated successfully!");
       }
-      
-      const res = await fetch(URLS.API.USERS.PROFILE, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Don't set Content-Type for FormData - browser will set it with boundary
-        },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update profile");
-
-      // Update local user data with the response
-      if (data.data) {
-        localStorage.setItem("user", JSON.stringify(data.data));
-        // Update the auth context without reloading
-        window.dispatchEvent(new Event('storage'));
-      }
-
-      setIsEditing(false);
-      setProfileMessage("Profile updated successfully!");
     } catch (error: any) {
       console.error("Profile update error:", error);
       setProfileMessage(error.message || "Failed to update profile");
@@ -136,6 +226,8 @@ export default function Profile() {
   const handleCancel = () => {
     setEditedData(user);
     setIsEditing(false);
+    setUploadProgress(null);
+    setUploadCanceller(null);
   };
 
   useEffect(() => {
@@ -235,6 +327,26 @@ export default function Profile() {
                         <Camera className="h-4 w-4" />
                       </Button>
                     </>
+                  )}
+                  
+                  {/* Upload Progress Display */}
+                  {uploadProgress && (
+                    <div className="absolute -bottom-16 left-0 right-0">
+                      <UploadProgress
+                        upload={uploadProgress}
+                        onCancel={() => {
+                          if (uploadCanceller) {
+                            uploadCanceller();
+                            setUploadCanceller(null);
+                          }
+                        }}
+                        onRetry={() => {
+                          // Retry logic can be implemented here
+                          toast.info("Retry functionality coming soon");
+                        }}
+                        showDetails={false}
+                      />
+                    </div>
                   )}
                 </div>
 

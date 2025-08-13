@@ -12,6 +12,14 @@ import {
   formatFileSize,
   uploadFileWithProgress,
 } from "@/lib/file-upload";
+import { UploadProgress, UploadProgressData } from "@/components/UploadProgress";
+import { 
+  validateFile as validateFileNew, 
+  formatFileSize as formatFileSizeNew,
+  uploadFileWithProgress as uploadFileWithProgressNew,
+  getFileTypeConfig,
+  createFormDataWithProgress
+} from "@/lib/upload-utils";
 
 import { BACKEND_URL } from "@/config/urls"; // or your deployed backend
 
@@ -109,6 +117,8 @@ const ManageLessons = () => {
 
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgresses, setUploadProgresses] = useState<UploadProgressData[]>([]);
+  const [uploadCancellers, setUploadCancellers] = useState<Map<string, () => void>>(new Map());
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
@@ -185,9 +195,10 @@ const ManageLessons = () => {
     // Validate all files if present
     if (files.length > 0) {
       for (const file of files) {
-        const validation = validateFile(file);
-        if (!validation.isValid) {
-          toast.error(`${file.name}: ${validation.error}`);
+        const config = getFileTypeConfig(file);
+        const validation = validateFileNew(file, config);
+        if (validation) {
+          toast.error(`${file.name}: ${validation}`);
           return;
         }
       }
@@ -200,29 +211,88 @@ const ManageLessons = () => {
       let uploadedFilesInfo = [];
       if (files.length > 0) {
         try {
+          // Initialize upload progress for all files
+          const initialProgresses = files.map(file => ({
+            percentage: 0,
+            uploadedBytes: 0,
+            totalBytes: file.size,
+            speed: 0,
+            timeRemaining: 0,
+            status: 'uploading' as const,
+            fileName: file.name,
+          }));
+          setUploadProgresses(initialProgresses);
+
           // Upload all files with progress tracking
           for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            const uploadRes = await uploadFileWithProgress(
-              URLS.API.LESSONS.UPLOAD,
-              file,
-              token,
-              (progress) => {
-                // Calculate overall progress across all files
-                const overallProgress = ((i + progress / 100) / files.length) * 100;
-                setUploadProgress(Math.round(overallProgress));
-              },
-            );
-            uploadedFilesInfo.push({
-              ...uploadRes.data,
-              is_downloadable: isDownloadable,
+            const formData = createFormDataWithProgress(file);
+            
+            let cancelUpload: (() => void) | undefined;
+            const cancelPromise = new Promise<never>((_, reject) => {
+              cancelUpload = () => reject(new Error('Upload cancelled'));
             });
+
+            // Store cancel function
+            setUploadCancellers(prev => new Map(prev.set(file.name, cancelUpload!)));
+
+            try {
+              const uploadRes = await Promise.race([
+                uploadFileWithProgressNew(
+                  URLS.API.LESSONS.UPLOAD,
+                  formData,
+                  (progress) => {
+                    // Update progress for this specific file
+                    setUploadProgresses(prev => 
+                      prev.map((p, index) => 
+                        index === i ? progress : p
+                      )
+                    );
+                  },
+                  cancelUpload
+                ),
+                cancelPromise
+              ]);
+
+              uploadedFilesInfo.push({
+                ...uploadRes.data,
+                is_downloadable: isDownloadable,
+              });
+
+              // Mark as complete
+              setUploadProgresses(prev => 
+                prev.map((p, index) => 
+                  index === i ? { ...p, status: 'complete' as const } : p
+                )
+              );
+
+            } catch (uploadError) {
+              console.error("Upload error:", uploadError);
+              
+              // Mark as error
+              setUploadProgresses(prev => 
+                prev.map((p, index) => 
+                  index === i ? { 
+                    ...p, 
+                    status: 'error' as const, 
+                    error: uploadError instanceof Error ? uploadError.message : 'Upload failed'
+                  } : p
+                )
+              );
+
+              if (uploadError instanceof Error && uploadError.message === 'Upload cancelled') {
+                toast.error("❌ Upload cancelled");
+              } else {
+                toast.error("❌ File upload failed. Please try again.");
+              }
+              setIsSubmitting(false);
+              return;
+            }
           }
         } catch (uploadError) {
           console.error("Upload error:", uploadError);
           toast.error("❌ File upload failed. Please try again.");
           setIsSubmitting(false);
-          setUploadProgress(0);
           return;
         }
       }
@@ -284,6 +354,8 @@ const ManageLessons = () => {
       });
       setFiles([]);
       setUploadProgress(0);
+      setUploadProgresses([]);
+      setUploadCancellers(new Map());
       setQuizEnabled(false);
       setQuizData({
         title: "",
@@ -375,6 +447,8 @@ const ManageLessons = () => {
       setEditingLesson(null);
       setFiles([]);
       setUploadProgress(0);
+      setUploadProgresses([]);
+      setUploadCancellers(new Map());
       setNewLesson({
         title: "",
         content: "",
@@ -533,7 +607,7 @@ const ManageLessons = () => {
                           <div className="flex-1">
                             <p className="text-sm font-medium">{file.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              Size: {formatFileSize(file.size)} | Type: {file.type}
+                              Size: {formatFileSizeNew(file.size)} | Type: {file.type}
                             </p>
                           </div>
                           <Button
@@ -549,15 +623,31 @@ const ManageLessons = () => {
                       ))}
                     </div>
                   )}
-                  {uploadProgress > 0 && uploadProgress < 100 && (
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Uploading: {uploadProgress}%
-                      </p>
+                  {/* Upload Progress Display */}
+                  {uploadProgresses.length > 0 && (
+                    <div className="space-y-3 mt-4">
+                      <h4 className="text-sm font-medium">Upload Progress:</h4>
+                      {uploadProgresses.map((progress, index) => (
+                        <UploadProgress
+                          key={index}
+                          upload={progress}
+                          onCancel={() => {
+                            const cancelFn = uploadCancellers.get(progress.fileName);
+                            if (cancelFn) {
+                              cancelFn();
+                              setUploadCancellers(prev => {
+                                const newMap = new Map(prev);
+                                newMap.delete(progress.fileName);
+                                return newMap;
+                              });
+                            }
+                          }}
+                          onRetry={() => {
+                            // Retry logic can be implemented here
+                            toast.info("Retry functionality coming soon");
+                          }}
+                        />
+                      ))}
                     </div>
                   )}
                   <label className="flex items-center space-x-2 mt-1">

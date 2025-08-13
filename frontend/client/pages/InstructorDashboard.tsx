@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { validateFile, formatFileSize } from "@/lib/file-upload";
+import { UploadProgress, UploadProgressData } from "@/components/UploadProgress";
+import { 
+  validateFile as validateFileNew, 
+  formatFileSize as formatFileSizeNew,
+  uploadFileWithProgress as uploadFileWithProgressNew,
+  getFileTypeConfig,
+  createFormDataWithProgress
+} from "@/lib/upload-utils";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +61,8 @@ export default function InstructorDashboard() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressData | null>(null);
+  const [uploadCanceller, setUploadCanceller] = useState<(() => void) | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [newCourse, setNewCourse] = useState({
@@ -88,9 +98,10 @@ export default function InstructorDashboard() {
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validation = validateFile(file);
-      if (!validation.isValid) {
-        toast.error(validation.error);
+      const config = getFileTypeConfig(file);
+      const validation = validateFileNew(file, config);
+      if (validation) {
+        toast.error(validation);
         e.target.value = "";
         return;
       }
@@ -100,42 +111,118 @@ export default function InstructorDashboard() {
   };
 
   const handleCreateOrUpdateCourse = async () => {
-    const formData = new FormData();
-    const curriculum = {
-      topics: newCourse.curriculumTopics.split(",").map((t) => t.trim()),
-      total_modules: parseInt(newCourse.totalModules),
-      total_quizzes: parseInt(newCourse.totalQuizzes),
-    };
+    try {
+      const formData = new FormData();
+      const curriculum = {
+        topics: newCourse.curriculumTopics.split(",").map((t) => t.trim()),
+        total_modules: parseInt(newCourse.totalModules),
+        total_quizzes: parseInt(newCourse.totalQuizzes),
+      };
 
-    formData.append("title", newCourse.title);
-    formData.append("description", newCourse.description);
-    formData.append("category", newCourse.category);
-    formData.append("difficulty", newCourse.difficulty);
-    formData.append("tags", newCourse.tags);
-    formData.append("price", newCourse.price);
-    formData.append("overview", newCourse.overview);
-    formData.append("curriculum", JSON.stringify(curriculum));
-    if (thumbnail) formData.append("thumbnail", thumbnail);
+      formData.append("title", newCourse.title);
+      formData.append("description", newCourse.description);
+      formData.append("category", newCourse.category);
+      formData.append("difficulty", newCourse.difficulty);
+      formData.append("tags", newCourse.tags);
+      formData.append("price", newCourse.price);
+      formData.append("overview", newCourse.overview);
+      formData.append("curriculum", JSON.stringify(curriculum));
 
-    const token = localStorage.getItem("token");
-    const url = isEditMode
-      ? URLS.API.COURSES.UPDATE(editingCourse?._id)
-      : URLS.API.COURSES.LIST;
-    const method = isEditMode ? "PUT" : "POST";
+      const token = localStorage.getItem("token");
+      const url = isEditMode
+        ? URLS.API.COURSES.UPDATE(editingCourse?._id)
+        : URLS.API.COURSES.LIST;
+      const method = isEditMode ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
+      // Handle thumbnail upload with progress if present
+      if (thumbnail) {
+        // Initialize upload progress
+        const initialProgress: UploadProgressData = {
+          percentage: 0,
+          uploadedBytes: 0,
+          totalBytes: thumbnail.size,
+          speed: 0,
+          timeRemaining: 0,
+          status: 'uploading',
+          fileName: thumbnail.name,
+        };
+        setUploadProgress(initialProgress);
 
-    const data = await res.json();
-    if (data.success) {
-      toast.success(isEditMode ? "✅ Course updated!" : "🎉 Course created!");
-      resetForm();
-      fetchMyCourses();
-    } else {
-      toast.error(data.message || "❌ Operation failed");
+        // Create form data for thumbnail upload
+        const thumbnailFormData = createFormDataWithProgress(thumbnail);
+        
+        // Add other form data to thumbnail form data
+        formData.forEach((value, key) => {
+          thumbnailFormData.append(key, value);
+        });
+
+        let cancelUpload: (() => void) | undefined;
+        const cancelPromise = new Promise<never>((_, reject) => {
+          cancelUpload = () => reject(new Error('Upload cancelled'));
+        });
+
+        setUploadCanceller(cancelUpload!);
+
+        try {
+          const res = await Promise.race([
+            uploadFileWithProgressNew(
+              url,
+              thumbnailFormData,
+              (progress) => {
+                setUploadProgress(progress);
+              },
+              cancelUpload
+            ),
+            cancelPromise
+          ]);
+
+          // Mark as complete
+          setUploadProgress(prev => prev ? { ...prev, status: 'complete' } : null);
+
+          if (res.success) {
+            toast.success(isEditMode ? "✅ Course updated!" : "🎉 Course created!");
+            resetForm();
+            fetchMyCourses();
+          } else {
+            toast.error(res.message || "❌ Operation failed");
+          }
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          
+          // Mark as error
+          setUploadProgress(prev => prev ? { 
+            ...prev, 
+            status: 'error', 
+            error: uploadError instanceof Error ? uploadError.message : 'Upload failed'
+          } : null);
+
+          if (uploadError instanceof Error && uploadError.message === 'Upload cancelled') {
+            toast.error("❌ Upload cancelled");
+          } else {
+            toast.error("❌ Upload failed. Please try again.");
+          }
+          return;
+        }
+      } else {
+        // No thumbnail, proceed with regular form submission
+        const res = await fetch(url, {
+          method,
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          toast.success(isEditMode ? "✅ Course updated!" : "🎉 Course created!");
+          resetForm();
+          fetchMyCourses();
+        } else {
+          toast.error(data.message || "❌ Operation failed");
+        }
+      }
+    } catch (error) {
+      console.error("Course creation/update error:", error);
+      toast.error("❌ Operation failed");
     }
   };
 
@@ -195,6 +282,8 @@ export default function InstructorDashboard() {
     });
     setThumbnail(null);
     setThumbnailPreview(null);
+    setUploadProgress(null);
+    setUploadCanceller(null);
   };
 
   return (
@@ -326,7 +415,7 @@ export default function InstructorDashboard() {
                 {thumbnail && (
                   <div className="text-sm text-muted-foreground">
                     <p>File: {thumbnail.name}</p>
-                    <p>Size: {formatFileSize(thumbnail.size)}</p>
+                    <p>Size: {formatFileSizeNew(thumbnail.size)}</p>
                   </div>
                 )}
                 {thumbnailPreview && (
@@ -335,6 +424,25 @@ export default function InstructorDashboard() {
                     alt="preview"
                     className="h-24 mt-2"
                   />
+                )}
+                
+                {/* Upload Progress Display */}
+                {uploadProgress && (
+                  <div className="mt-4">
+                    <UploadProgress
+                      upload={uploadProgress}
+                      onCancel={() => {
+                        if (uploadCanceller) {
+                          uploadCanceller();
+                          setUploadCanceller(null);
+                        }
+                      }}
+                      onRetry={() => {
+                        // Retry logic can be implemented here
+                        toast.info("Retry functionality coming soon");
+                      }}
+                    />
+                  </div>
                 )}
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={resetForm}>
